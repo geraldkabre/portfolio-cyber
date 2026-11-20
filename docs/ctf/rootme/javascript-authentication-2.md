@@ -1,31 +1,28 @@
----
-title: "Root-Me – Javascript : Authentication (2)"
-platform: "Root-Me"
-category: "Web-Client"
-difficulty: "Moyen"
-score: "10"
----
+# Root-Me – JavaScript: Authentication 2
+| Platform | Category | Difficulty | Points |
+|---|---|---|---|
+| Root-Me | Web-Client | Medium | 10 |
 
-## Objectif
-Identifier des identifiants stockés côté client mais difficiles à repérer.
+## Objective
+Find credentials stored on the client side but harder to spot.
 
-## Contexte & Info Gathering
-- Cible/URL : challenge Root-Me
-- Observation : la logique d'authentification est dans un script JS, mais l'info n'est pas visible immédiatement (obfuscation/encodage simple).
+## Recon
+- Target: Root-Me challenge.
+- Observation: the authentication logic is in a JS script, but the information is not immediately visible (light obfuscation/encoding).
 
-## Démarche / Étapes
-1. Ajouter à l'URL le 'login.js'
-2. Télécharger le fichier JS 
-3. Trouver le mot de passe dans le fichier JS
-4. Récupérer identifiant/mot de passe et tenter la connexion.
+## Steps
+1. Append `login.js` to the URL.
+2. Open the JS file.
+3. Locate the password in the code.
+4. Use the recovered username/password to log in.
 
-## Root cause & Vulnérabilité
-Secrets embarqués côté client, parfois masqués par obfuscation légère — contournable.
-CWE-200.
+## Root Cause
+Secrets embedded on the client side, sometimes hidden by light obfuscation that is easy to reverse.
+**CWE-200: Exposure of Sensitive Information.**
 
-## Contremesures / Mitigations
-Ne pas stocker secrets côté client.
-Utiliser méthodes d’authent sécurisées côté serveur.
+## Mitigations
+- Do not store secrets on the client side.
+- Use secure server-side authentication.
 
-## Leçons apprises
-L'obfuscation côté client n'est pas une protection ; un attaquant peut facilement déobfusquer ou décoder.
+## Lessons Learned
+Client-side obfuscation is not protection: an attacker can easily deobfuscate or decode it.

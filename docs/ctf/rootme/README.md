@@ -1,15 +1,26 @@
-# 🧩 CTF — Root-Me
+# Root-Me Write-ups
 
-Bienvenue dans la section **CTF** de mon portfolio.  
-Vous trouverez ici mes write-ups, notes et liens vers mes profils CTF.
+My Root-Me write-ups: how I solved each challenge, the vulnerability behind it, and how to fix it.
 
-## 🔗 Mon profil Root-Me
-[➡️ Mon compte Root-Me — godboy](https://www.root-me.org/godboy?lang=en#d937a1e09140fb65765a9e793f4c84a2)
+## Profile
+[godboy on Root-Me](https://www.root-me.org/godboy?lang=en)
 
-> Sur cette page vous pouvez consulter mes challenges, scores et write-ups.  
-> Les ressources et write-ups détaillés seront ajoutés progressivement.
+> Flags and validation passwords are not published, out of respect for the Root-Me rules.
 
-## 📌 À propos
-- Pseudonyme : **godboy**  
-- Plateforme principale : **Root-Me**  
-- Statut : travaux et write-ups en cours — je documente les challenges résolus et les méthodologies employées.
+## Write-ups
+| Challenge | Category | Difficulty | Vulnerability |
+|---|---|---|---|
+| [HTML – Disabled Buttons](html-disabled-buttons.md) | Web-Client | Easy | Client-side enforcement (CWE-602) |
+| [JavaScript – Source](javascript-source.md) | Web-Client | Easy | Secret in source code (CWE-200) |
+| [JavaScript – Authentication](javascript-authentication-1.md) | Web-Client | Easy | Hard-coded credentials (CWE-200) |
+| [JavaScript – Authentication 2](javascript-authentication-2.md) | Web-Client | Medium | Hard-coded credentials (CWE-200) |
+| [JavaScript – Obfuscation 1](javascript-obfuscation-1.md) | Web-Client | Medium | Weak obfuscation (CWE-200) |
+| [HTTP – IP Restriction Bypass](http-ip-restriction-bypass.md) | Web-Server | Medium | Header spoofing (CWE-290) |
+| [HTTP – Open Redirect](http-open-redirect.md) | Web-Server | Medium | Open redirect (CWE-601) |
+| [HTTP – User-Agent](http-user-agent.md) | Web-Server | Easy | Header spoofing (CWE-290) |
+| [HTTP – Weak Password](http-weak-password.md) | Web-Server | Easy | Default credentials (CWE-1392) |
+| [Encoding – ASCII](encoding-ascii.md) | Cryptanalysis | Easy | Encoding is not encryption |
+| [Encoding – UU](encoding-uu.md) | Cryptanalysis | Easy | Encoding is not encryption |
+
+## Methodology
+Each write-up follows the same structure: **Objective → Recon → Steps → Root Cause (CWE) → Mitigations → Lessons Learned**.

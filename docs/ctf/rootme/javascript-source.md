@@ -1,36 +1,31 @@
----
-titre: "Root-Me – Javascript : Source"
-platform: "Root-Me"
-category: "Web-Client"
-difficulty: "Facile"
-score: "5"
----
+# Root-Me – JavaScript: Source
+| Platform | Category | Difficulty | Points |
+|---|---|---|---|
+| Root-Me | Web-Client | Easy | 5 |
 
-## Objectif
-Trouver le mot de passe.
+## Objective
+Find the password.
 
-## Contexte & Info Gathering
-- Cible/URL : challenge Root-Me
-- Observation : le code source contient des commentaires ou variables exposant le mot de passe.
+## Recon
+- Target: Root-Me challenge.
+- Observation: the source code contains comments or variables that expose the password.
 
-## Démarche / Étapes
-1. Ouvrir la page challenge.
-2. Faire `Ctrl+U` (View Source) ou ouvrir DevTools -> Sources.
-3. Rechercher le code.
-4. Copier sa valeur, le noter comme preuve et le soumettre.
+## Steps
+1. Open the challenge page.
+2. Press `Ctrl+U` (View Source) or open DevTools → Sources.
+3. Search the code for the password check.
+4. Copy the value and submit it.
 
-## Détails techniques
-- Outils : navigateur, View Source, DevTools.
-- Commandes : n/a (interface graphique).
+## Tools
+Browser, View Source, DevTools.
 
-## Root cause & Vulnérabilité
-Données sensibles laissées dans le code source (commentaires/variables).  
-**CWE-200 (Information Exposure)**.
+## Root Cause
+Sensitive data left in the source code (comments/variables).
+**CWE-200: Exposure of Sensitive Information.**
 
+## Mitigations
+- Clean the code before deployment.
+- Manage secrets on the server side.
 
-## Contremesures / Mitigations
-- Nettoyer le code avant déploiement.
-- Gérer secrets côté serveur.
-
-## Leçons apprises
-- La lecture du code source reste la première étape d’un audit web.
+## Lessons Learned
+Reading the source code is always the first step of a web audit.

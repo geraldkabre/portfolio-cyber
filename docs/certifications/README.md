@@ -1,47 +1,36 @@
-# 🛡 Certifications – Gérald Kabré
+# Certifications
 
-Voici un résumé de mes certifications Cisco et des compétences associées.
+## Cisco Networking Academy – Junior Cybersecurity Analyst Career Path
+Six certifications covering network fundamentals, endpoint and network defense, and threat management.
 
----
+| Certification | Focus |
+|---|---|
+| [Introduction to Cybersecurity](#introduction-to-cybersecurity) | Security fundamentals and good practices |
+| [Networking Basics](#networking-basics) | Network concepts and protocols |
+| [Networking Devices and Basic Configuration](#networking-devices-and-basic-configuration) | Configuring Cisco network devices |
+| [Endpoint Security](#endpoint-security) | Hardening workstations and endpoints |
+| [Network Defense](#network-defense) | Securing network infrastructure and operating systems |
+| [Cyber Threat Management](#cyber-threat-management) | Threat and vulnerability assessment and management |
 
-## 🛡 Parcours Analyste Junior en Cybersécurité – Cisco
-🌍 J’ai choisi de me spécialiser dans la défense numérique grâce à la Cisco Networking Academy.  
-🎓 Ce parcours, jalonné de certifications reconnues, m’a permis de développer une expertise opérationnelle directement applicable.
-
-### ✨ Compétences clés acquises :
-- 🔐 Sécurité réseau & gestion des risques
-- 🛰 Veille et analyse des menaces (Threat Intelligence)
-- 🛡 Détection & réponse aux incidents de sécurité
-- ⚔ Méthodologie de mitigation et défense face aux cyberattaques
-
-### 🚀 Métiers visés :
-- 👨‍💻 Analyste SOC Junior
-- 🛡 Technicien en cybersécurité
-- 🖥 Support sécurité de premier niveau
+**Key skills:** network security and risk management · threat intelligence · incident detection and response · attack mitigation.
+**Target roles:** Junior SOC Analyst · Cybersecurity Technician · Tier-1 Security Support.
 
 ---
 
-## 🔐 Cisco – Introduction to Cybersecurity
-![Intro Cybersecurity](Introduction_to_cybersecurity.png)  
-✅ Compréhension des fondamentaux de la cybersécurité et bonnes pratiques organisationnelles.
+### Introduction to Cybersecurity
+![Introduction to Cybersecurity](Introduction_to_cybersecurity.png)
 
-## 🌐 Cisco – Networking Basics
-![Networking Basics](Networking_Basics.png)  
-✅ Maîtrise des réseaux, protocoles, configuration et sécurisation des équipements.
+### Networking Basics
+![Networking Basics](Networking_Basics.png)
 
-## 🖥 Cisco – Endpoint Security
-![Endpoint Security](Endpoint_Security.png)  
-✅ Protection et sécurisation des postes de travail et terminaux réseau.
+### Networking Devices and Basic Configuration
+![Networking Devices and Basic Configuration](Networking_Devices_and_Basic_Configuration.png)
 
-## 🛡 Cisco – Network Defense
-![Network Defense](Network_Defense.png)  
-✅ Sécurisation des infrastructures réseau et systèmes d’exploitation.
+### Endpoint Security
+![Endpoint Security](Endpoint_Security.png)
 
-## 🌐 Cisco – Networking Devices and Basic Configuration
-![Networking Devices](Networking_Devices_and_Basic_Configuration.png)  
-✅ Conception et configuration de réseaux à l’aide d’équipements Cisco.
+### Network Defense
+![Network Defense](Network_Defense.png)
 
-## ⚔ Cisco – Cyber Threat Management
-![Threat Management](Cyber_threat_Management.png)  
-✅ Identification, évaluation et gestion des menaces et vulnérabilités dans un contexte organisationnel.
-
+### Cyber Threat Management
+![Cyber Threat Management](Cyber_threat_Management.png)
