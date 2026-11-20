@@ -10,6 +10,8 @@
 | **Supervisor** | Mr. Pousga Martin Kiendrebeogo |
 | **Keywords** | pfSense, network segmentation, firewall, IDS/IPS, defense in depth |
 
+> 📄 **[Read the full thesis (PDF, French)](thesis-pfsense-umet-burkina.pdf)**
+
 ---
 
 ## Abstract
@@ -25,8 +27,14 @@ A pfSense-based architecture was designed to segment the network into five isola
 - No inter-segment filtering, no intrusion detection, no web filtering, no centralized logs.
 - Consequence: a single compromised device could reach every system on campus, including administrative data.
 
+![Initial UMET network architecture](images/architecture-before.png)
+*Figure 1 – Initial architecture: flat network, no VLANs, no central firewall, and a single point of failure at the core switch.*
+
 ## 2. Target Architecture
 pfSense is the central control point. It handles inter-VLAN routing, stateful filtering, intrusion prevention, web proxying and logging.
+
+![Secured network architecture](images/architecture-after.png)
+*Figure 2 – Secured architecture: pfSense with Dual-WAN, redundant HP core switches with RSTP, and five isolated VLANs.*
 
 - **Dual-WAN** (Orange and Moov) with load balancing and automatic failover.
 - **Redundant core**: two managed HP switches linked by a trunk, each connected to pfSense; **RSTP** prevents loops while keeping automatic recovery.
@@ -62,6 +70,19 @@ pfSense is the central control point. It handles inter-VLAN routing, stateful fi
 | 5 | Web filtering | Access to a blocked domain from VLAN 30 denied by the proxy |
 | 6 | IDS/IPS | An external Nmap port scan was detected by Suricata and the source automatically blocked |
 
+### Evidence
+**Inter-VLAN isolation (test 3)** – a host in VLAN 30 (192.168.30.101) cannot reach the VLAN 10 gateway: 100% packet loss.
+
+![Inter-VLAN isolation test](images/test-vlan-isolation.png)
+
+**Web filtering (test 5)** – before filtering, the blocked site loads (left); after, the proxy denies access (right).
+
+![Web filtering test](images/test-web-filtering.png)
+
+**Intrusion detection (test 6)** – Suricata alerts on the Nmap scan, from both the Emerging Threats signature (SID 2024364) and a custom rule (SID 1000001).
+
+![Suricata alerts](images/test-suricata-alerts.png)
+
 ## 5. Operations and Resilience
 - Configuration backups (local and external media) with restore tests
 - Disaster recovery plan (RTO/RPO defined)
@@ -81,4 +102,6 @@ Estimated hardware budget: **535,000 – 1,140,000 FCFA** (about USD 900 – 1,9
 ## Skills Demonstrated
 `pfSense` · `VLAN design` · `Firewall policy` · `Dual-WAN failover` · `RSTP` · `Port Security` · `Suricata IDS/IPS` · `SquidGuard / pfBlockerNG` · `802.1X / RADIUS` · `Logging and monitoring` · `Disaster recovery planning`
 
-<!-- TODO: add architecture diagram (architecture.png) and test screenshots to this folder -->
+---
+
+📄 **[Read the full thesis (PDF, French)](thesis-pfsense-umet-burkina.pdf)**

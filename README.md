@@ -24,6 +24,8 @@ Bachelor's thesis. Redesign of a flat university network into a segmented, defen
 - WPA-Enterprise (802.1X / RADIUS) for administrative Wi-Fi
 - Validated by six functional tests, including automatic blocking of an Nmap scan
 
+[Project details →](docs/projects/pfsense-umet-burkina/README.md) · [Full thesis (PDF) →](docs/projects/pfsense-umet-burkina/thesis-pfsense-umet-burkina.pdf)
+
 ### Work in Progress
 - [China–Burkina Faso Cross-Border E-Commerce Platform](docs/projects/china-burkina-ecommerce/README.md)
 - [Study in China – Guidance Platform for Burkinabè Students](docs/projects/study-in-china-guide/README.md)
