@@ -66,6 +66,7 @@ function WorldPanel({ kicker, ids }: { kicker: string; ids: string[] }) {
     <div className="cv-panel is-world" role="dialog" aria-modal="true" aria-labelledby="cv-world-title" tabIndex={-1} ref={sheet}
       style={{ ['--w-accent' as string]: world.accent }}
       onKeyDown={(e) => {
+        if ((e.target as HTMLElement).closest('dialog')) return; // the certificate viewer handles its own keys
         if (e.key === 'Escape') bridge.game?.closePanel();
         if (ids.length > 1 && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) setTab((t) => (t + 1) % ids.length);
       }}>

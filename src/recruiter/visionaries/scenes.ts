@@ -49,7 +49,7 @@ export const SCENES: Scene[] = [
     bgFocus: '50% 50%', thumbFocus: '50% 46%', thumbScale: 1.5, accent: '#7982aa' }),
   scene({ id: 'skills', title: 'Skills', caption: 'pfSense · Suricata · Python · Git', section: 'skills', place: 'Security Operations Center',
     bgFocus: '50% 50%', thumbFocus: '50% 52%', thumbScale: 1.4, accent: '#407891' }),
-  scene({ id: 'languages', title: 'Languages', caption: 'French · English B2 · Mandarin', section: 'languages', place: 'The Sentinel Nexus campus',
+  scene({ id: 'languages', title: 'Languages', caption: 'French · English B2 · Chinese', section: 'languages', place: 'The Sentinel Nexus campus',
     bgFocus: '50% 50%', thumbFocus: '50% 58%', thumbScale: 1.6, accent: '#3c607f' }),
   scene({ id: 'contact', title: 'Contact', caption: PROFILE.links.email ? 'E-mail · GitHub · Root-Me' : 'GitHub · Root-Me', section: 'contact', place: 'Communication Tower',
     bgFocus: '50% 40%', thumbFocus: '45% 44%', thumbScale: 1.4, accent: '#7da8d3' }),

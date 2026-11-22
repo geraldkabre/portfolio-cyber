@@ -269,3 +269,9 @@ Causes trouvées à la trace de performance et corrigées :
 | Anneau Visionaries | non relancé (code inchangé) |
 
 Pour les mondes, le contrôle de fluidité du changement de monde varie selon la charge de la machine : p95 entre 21 et 28 ms pour un seuil de 25.
+
+## 10. Langues, Duolingo, adresse (23/11/2026)
+- **Langues** : French — Native · English — B2 · Duolingo 110 · Chinese — Learning (même texte dans le mode recruteur et dans le panneau 3D de l'Académie).
+- **Certificat Duolingo** : un clic sur « B2 · Duolingo 110 » ouvre le certificat (copie WebP de la capture du propriétaire) avec un lien « Verify on Duolingo ». Échap ou × ne ferme que la visionneuse. La capture d'origine reste hors de Git.
+- **Adresse prévue** : https://geraldkabreportfolio.netlify.app (sous-domaine Netlify gratuit).
+- Vérifications : mondes 26 / 26, parcours 3D 32 / 32, tactile 7 / 7.

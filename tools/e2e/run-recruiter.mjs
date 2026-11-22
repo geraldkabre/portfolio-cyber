@@ -100,6 +100,17 @@ try {
         check('education: years shown, High School Diploma, preparatory classes, bachelor to January 2026', ['2022', 'High School Diploma', '2022 – 2024', 'Preparatory classes', '2024 – January 2026', 'March 2026 – now', 'Qingdao Binhai University', 'Dadoh University'].every((t) => w.text.includes(t)) && !/Baccalaur/.test(w.text) && /Three years/.test(w.headline));
         await shot(page, 'desktop-education.png');
       }
+      if (id === 'languages') {
+        const ok1 = ['French', 'Native', 'English', 'B2 · Duolingo 110', 'Chinese', 'Learning'].every((t) => w.text.includes(t));
+        await page.click('.w-layer .w-zoom');
+        await sleep(500);
+        const dlg = await page.evaluate(() => { const d = document.querySelector('.w-layer .w-viewer'); const im = d?.querySelector('img'); return { open: !!d?.open, loaded: !!im && im.complete && im.naturalWidth > 0, verify: d?.querySelector('a')?.getAttribute('href') }; });
+        await shot(page, 'desktop-duolingo.png');
+        await page.keyboard.press('Escape');
+        await sleep(400);
+        const closedDlg = await page.evaluate(() => !document.querySelector('.w-layer .w-viewer')?.open && !!document.querySelector('.w-layer'));
+        check('languages: French native, English B2 · Duolingo 110, Chinese learning; the Duolingo certificate opens on click', ok1 && dlg.open && dlg.loaded && /certs.duolingo.com/.test(dlg.verify ?? '') && closedDlg, JSON.stringify(dlg));
+      }
       if (id === 'skills') {
         check('skills: no levels, thesis tools added', !/Beginner|Intermediate/.test(w.text) && ['Squid + SquidGuard', 'pfBlockerNG', 'Nmap', 'VMware Workstation', 'RSTP & Port Security'].every((t) => w.text.includes(t)));
         await shot(page, 'desktop-skills.png');

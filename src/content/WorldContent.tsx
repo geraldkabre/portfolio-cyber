@@ -1,5 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import type { World } from './worlds';
+import type { World, WorldItem } from './worlds';
 import '../styles/world-content.css';
 
 /**
@@ -14,8 +15,10 @@ const linkProps = (href: string) => (href.startsWith('mailto:') ? {} : ext);
 export function WorldContent({ world, headingId, level = 1 }: { world: World; headingId?: string; level?: 1 | 2 }) {
   const Heading = level === 1 ? 'h1' : 'h2';
   const photo = world.photo && __HAS_PHOTO__;
+  const [zoom, setZoom] = useState<WorldItem['zoom'] | null>(null);
   return (
     <>
+      <Viewer item={zoom} onClose={() => setZoom(null)} />
       <div className="w-stage" aria-hidden="true">
         <p className="w-word w-anim">{world.word}</p>
         <div className={`w-visual w-anim${photo ? ' is-photo' : ''}`}>
@@ -46,7 +49,8 @@ export function WorldContent({ world, headingId, level = 1 }: { world: World; he
               <li key={it.label} className={`w-item w-anim${it.period ? ' has-period' : ''}`}>
                 {it.period && <span className="w-period">{it.period}</span>}
                 {it.href ? <a href={it.href} {...linkProps(it.href)}>{it.label}<span aria-hidden="true"> ↗</span></a> : <strong>{it.label}</strong>}
-                {it.meta && <span className={it.status ? `w-status ${it.status}` : 'w-dim'}>{it.meta}</span>}
+                {it.meta && it.zoom && <button type="button" className="w-zoom" onClick={() => setZoom(it.zoom)} aria-haspopup="dialog">{it.meta}<span aria-hidden="true"> ⤢</span></button>}
+                {it.meta && !it.zoom && <span className={it.status ? `w-status ${it.status}` : 'w-dim'}>{it.meta}</span>}
               </li>
             ))}
           </ul>
@@ -70,6 +74,31 @@ export function WorldContent({ world, headingId, level = 1 }: { world: World; he
         </p>
       </div>
     </>
+  );
+}
+
+/** Picture viewer (a modal dialog: Esc, the × button or a click outside closes it). */
+function Viewer({ item, onClose }: { item: WorldItem['zoom'] | null; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (item && !d.open) d.showModal();
+    if (!item && d.open) d.close();
+  }, [item]);
+  return (
+    <dialog ref={ref} className="w-viewer" onClose={onClose} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} aria-label={item?.alt}>
+      {item && (
+        <figure>
+          <img src={item.src} alt={item.alt} />
+          <figcaption>
+            {item.alt}
+            {item.verify && <> · <a href={item.verify} target="_blank" rel="noreferrer">Verify on Duolingo ↗</a></>}
+          </figcaption>
+        </figure>
+      )}
+      <button type="button" className="w-viewer-close" onClick={onClose} aria-label="Close">×</button>
+    </dialog>
   );
 }
 

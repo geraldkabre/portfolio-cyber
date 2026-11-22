@@ -421,7 +421,7 @@ export class Game {
     this.input.on('interact', () => this.interact());
     this.input.on('jump', () => this.jump());
     this.input.on('toggleWalk', () => { if (store.get().phase === 'play') store.set({ walkMode: !store.get().walkMode }); });
-    this.input.on('escape', () => { if (store.get().panel) this.closePanel(); });
+    this.input.on('escape', () => { if (store.get().panel && !document.querySelector('dialog[open]')) this.closePanel(); });
     this.input.on('help', () => { if (store.get().phase === 'play') this.openPanel(store.get().panel === 'help' ? null : 'help'); });
     this.input.on('debug', () => store.set({ debug: !store.get().debug }));
     this.input.on('map', () => { if (store.get().phase === 'play') this.openPanel(store.get().panel === 'map' ? null : 'map'); });

@@ -98,3 +98,17 @@
   .w-item.has-period > * { grid-column: 1 !important; }
   .w-period { grid-row: auto; }
 }
+
+/* A detail that opens a picture (Duolingo certificate). */
+.w-zoom {
+  padding: 0.3em 0.7em; border-radius: 999px; border: 1px solid rgba(0, 229, 255, 0.45); background: rgba(0, 229, 255, 0.08);
+  color: #e9f2ff; font: 600 13px/1.2 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); cursor: zoom-in; transition: background 0.25s, border-color 0.25s;
+}
+.w-zoom:hover { background: rgba(0, 229, 255, 0.18); border-color: #00e5ff; }
+.w-viewer { max-width: min(620px, 94vw); max-height: 92vh; padding: 0; border: 1px solid rgba(0, 229, 255, 0.4); border-radius: 16px; background: #0a1226; color: #e9f2ff; overflow: auto; }
+.w-viewer::backdrop { background: rgba(3, 6, 14, 0.82); }
+.w-viewer figure { margin: 0; }
+.w-viewer img { display: block; width: 100%; height: auto; background: #fff; }
+.w-viewer figcaption { padding: 0.8rem 1rem; font: 400 14px/1.45 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); color: rgba(233, 242, 255, 0.75); }
+.w-viewer figcaption a { color: #00e5ff; }
+.w-viewer-close { position: absolute; top: 8px; right: 8px; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(120, 210, 255, 0.3); background: rgba(7, 11, 24, 0.85); color: #e9f2ff; font-size: 1.3rem; cursor: pointer; }

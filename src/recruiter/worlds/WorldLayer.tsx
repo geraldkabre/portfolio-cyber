@@ -185,6 +185,7 @@ export function WorldLayer({ id, origin, leaving, onLeft, onClose, onGo }: Props
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (leaving || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (document.querySelector('dialog[open]')) return; // a picture viewer is open: its own Esc closes it
       const i = worldIndex(id);
       if (e.key === 'Escape') { e.preventDefault(); onClose(); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); onGo(WORLDS[(i + 1) % WORLDS.length].id); }

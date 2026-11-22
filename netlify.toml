@@ -1,4 +1,5 @@
 # CYBERVERSE — Netlify configuration (deploy only with the owner's approval).
+# Site name: geraldkabreportfolio → https://geraldkabreportfolio.netlify.app (free subdomain, HTTPS included).
 # Set VITE_CONTACT_EMAIL in Site configuration > Environment variables to show the contact e-mail.
 [build]
   command = "npm run build"

@@ -8,7 +8,11 @@ import {
 import { SCENES } from '../recruiter/visionaries/scenes';
 
 export interface WorldStat { value: number; label: string; suffix?: string }
-export interface WorldItem { label: string; meta?: string; href?: string; status?: 'completed' | 'in-progress'; period?: string }
+export interface WorldItem {
+  label: string; meta?: string; href?: string; status?: 'completed' | 'in-progress'; period?: string;
+  /** The meta opens this picture (e.g. a certificate) in a viewer. */
+  zoom?: { src: string; alt: string; verify?: string };
+}
 export interface WorldLink { label: string; href: string }
 
 export interface World {
@@ -110,9 +114,12 @@ export const WORLDS: World[] = [
   {
     id: 'languages', word: 'FR·EN·中文', title: 'Languages', ...visual('languages'),
     headline: ['Three languages.', 'Two continents.'],
-    lead: 'French and English for work. Mandarin since March 2026 at Qingdao Binhai University.',
+    lead: 'French and English for work. Chinese since March 2026 at Qingdao Binhai University.',
     stats: [{ value: PROFILE.languages.length, label: 'languages' }, { value: 110, label: 'Duolingo English Test' }],
-    items: PROFILE.languages.map((l) => ({ label: l.name, meta: l.level.replace(' — Qingdao Binhai University', '') })),
+    items: PROFILE.languages.map((l) => ({
+      label: l.name, meta: l.level,
+      ...(l.name === 'English' ? { zoom: { src: PROFILE.duolingo.image, alt: 'Duolingo English Test certificate — overall score 110 (CEFR B2)', verify: PROFILE.duolingo.verify } } : {}),
+    })),
     cta: { label: 'GitHub profile', href: GITHUB.profile },
   },
   {

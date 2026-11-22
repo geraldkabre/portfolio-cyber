@@ -36,9 +36,14 @@ export const PROFILE = {
     'security challenges.',
   languages: [
     { name: 'French', level: 'Native' },
-    { name: 'English', level: 'B2 (Duolingo English Test 110)' },
-    { name: 'Mandarin Chinese', level: 'Learning — Qingdao Binhai University' },
+    { name: 'English', level: 'B2 · Duolingo 110' },
+    { name: 'Chinese', level: 'Learning' },
   ],
+  /** Duolingo English Test certificate (owner's screenshot), shown on click from the Languages summary. */
+  duolingo: {
+    image: '/assets/profile/duolingo-english-test.webp',
+    verify: 'https://certs.duolingo.com/vk1uimq8jejmluwo',
+  },
   links: {
     github: GITHUB.profile,
     rootme: 'https://www.root-me.org/godboy?lang=en#d937a1e09140fb65765a9e793f4c84a2',
