@@ -96,6 +96,10 @@ if (uPlinth > 0.5 && r < ${LAYOUT.plinthRadius.toFixed(2)}) {
   glow += cvLine(dL, 0.028) * inLane * (0.18 + 1.9 * pulse);
   glow += cvLine(abs(dL) - 0.22, 0.008) * inLane * 0.35;
 }
+// Subtle animated lighting: a wave of light runs outward along the seams every 9 s, fading as it travels.
+float waveR = mod(uTime, 9.0) * 6.5;
+float wave = exp(-pow((r - waveR) / 1.4, 2.0)) * (1.0 - smoothstep(20.0, 58.0, waveR));
+glow += wave * (0.08 + 0.85 * seam);
 diffuseColor.rgb *= (0.86 + 0.22 * panel) * (1.0 - 0.6 * seam);
 `)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>

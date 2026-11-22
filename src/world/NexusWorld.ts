@@ -10,6 +10,7 @@ import { createCampus, type Arrival, type Portal } from './campusWorld';
 import { createDistricts } from './districts';
 import { createProps } from './props';
 import { createLighting } from './lighting';
+import { createAmbience } from './ambience';
 import { batchStatic } from './batch';
 import { FX_TIME } from './fx';
 import { LAYOUT } from './layout';
@@ -37,6 +38,9 @@ export class NexusWorld {
   stats = { staticTriangles: 0, staticBatches: 0, colliderTriangles: 0 };
   /** Island the operator is on: 'command' (Nexus Prime) or a district id. */
   active = 'command';
+  /** Operator position (set by the game each frame): drives terminal and portal proximity feedback. */
+  readonly focus = new THREE.Vector3(0, -1000, 0);
+  private ambience!: ReturnType<typeof createAmbience>;
   private updaters: ((dt: number, t: number) => void)[] = [];
   private sky!: ReturnType<typeof createSky>;
   private districts!: ReturnType<typeof createDistricts>;
@@ -75,6 +79,7 @@ export class NexusWorld {
     this.props = createProps(mega, cyber, engine.quality.particles);
     this.campus = createCampus(mega, cyber, this.materials);
     this.districts = createDistricts();
+    this.ambience = createAmbience(engine.quality.particles);
 
     const staticRoot = new THREE.Group();
     staticRoot.add(this.cc.staticGroup, this.props.staticGroup);
@@ -82,7 +87,7 @@ export class NexusWorld {
     this.stats.staticTriangles = batched.userData.triangles;
     this.stats.staticBatches = batched.userData.batches;
     this.props.dynamic.name = 'props-dynamic';
-    this.root.add(island.group, batched, this.cc.dynamic, this.props.dynamic, this.districts.group, this.campus.root);
+    this.root.add(island.group, batched, this.cc.dynamic, this.props.dynamic, this.districts.group, this.campus.root, this.ambience.group);
     scene.add(this.root);
 
     this.collision = new CollisionWorld([island.colliders, this.cc.colliders, this.props.colliders, this.campus.colliders]);
@@ -99,7 +104,7 @@ export class NexusWorld {
       (_dt, t) => island.update(t),
       (dt, t) => this.cc.update(dt, t),
       (dt, t) => this.props.update(dt, t),
-      (_dt, t) => this.campus.update(t, this.active),
+      (_dt, t) => this.campus.update(t, this.active, this.focus),
     );
     await this.materials.ready();
     if (this.materials.missing.size) console.warn('[world] missing materials:', [...this.materials.missing]);
@@ -128,6 +133,7 @@ export class NexusWorld {
     this.active = id;
     this.campus.setActive(id);
     this.districts.setActive(id);
+    this.ambience.setActive(id);
     const c = id === 'command' ? new THREE.Vector3() : this.campus.districts.find((d) => d.id === id)!.center;
     const moon = this.lighting.moon;
     moon.target.position.copy(c);

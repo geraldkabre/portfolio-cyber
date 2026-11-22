@@ -120,7 +120,7 @@ export function energyMaterial(color: THREE.ColorRepresentation, intensity = 2.6
 
 /** Portal surface: swirling cyan/violet energy inside a rectangle (PlaneGeometry, uv 0..1). */
 export function portalMaterial() {
-  const uniforms = { uActive: { value: 1 }, uSurge: { value: 0 } };
+  const uniforms = { uActive: { value: 1 }, uSurge: { value: 0 }, uNear: { value: 0 } };
   const material = additive(
     uniforms,
     /* glsl */ `
@@ -128,7 +128,7 @@ export function portalMaterial() {
       void main() { vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0); vCamDist = -mv.z; gl_Position = projectionMatrix * mv; }`,
     /* glsl */ `
       ${GLSL_COMMON}
-      uniform float uTime; uniform float uActive; uniform float uSurge;
+      uniform float uTime; uniform float uActive; uniform float uSurge; uniform float uNear;
       varying vec2 vUv; varying float vCamDist;
       void main() {
         // Dim when seen from behind or from very close (third-person camera passing through).
@@ -144,7 +144,8 @@ export function portalMaterial() {
         float edge = 1.0 - rect;
         float rings = 0.5 + 0.5 * sin(r * 26.0 - uTime * 5.0);
         float body = (0.35 + 0.65 * swirl) * (0.75 + 0.25 * rings) * rect;
-        float intensity = (body * 1.5 + uSurge * 2.5 * rect) * uActive * view;
+        // uNear: the operator walks up to the portal -> the surface brightens and its rim lights up.
+        float intensity = (body * (1.5 + uNear * 0.8) + uSurge * 2.5 * rect + edge * uNear * 0.9) * uActive * view;
         gl_FragColor = vec4(col * intensity, 1.0);
       }`,
   );

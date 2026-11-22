@@ -13,6 +13,7 @@ const t0 = performance.now();
 const world = await NexusWorld.create(engine, () => undefined);
 const loadMs = performance.now() - t0;
 if (q.has('colliders')) engine.scene.add(world.collision.debugMesh());
+if (q.has('focus')) { const f = q.get('focus')!.split(',').map(Number); world.focus.set(f[0], f[1], f[2]); }
 
 const shots = (q.get('shots') ?? 'hero:0,4.5,38:0,9,0').split(';').map((s) => {
   const [name, p, t, active] = s.split(':');

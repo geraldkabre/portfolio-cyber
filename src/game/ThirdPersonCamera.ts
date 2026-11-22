@@ -22,6 +22,8 @@ export class ThirdPersonCamera {
   /** Height of the look-at point above the feet. */
   focusHeight = 1.45;
   shoulder = 0.28;
+  /** Establishing offset after a teleport (eased out): wider and higher, then settles behind the operator. */
+  private intro = { t: 0, dur: 0 };
 
   constructor(readonly camera: THREE.PerspectiveCamera, private world: CollisionWorld) {}
 
@@ -33,9 +35,23 @@ export class ThirdPersonCamera {
   snapBehind(feet: THREE.Vector3, facingYaw: number) {
     this.yaw = facingYaw + Math.PI;
     this.smoothed.copy(feet).setY(feet.y + this.focusHeight);
-    this.current = this.distance;
+    this.current = this.distance + 3.4 * this.introAmount;
     this.initialized = true;
     this.apply(1);
+  }
+
+  /** Starts a short pull-in from a wider, higher framing (arrival on an island). */
+  arrive(duration = 1.6) {
+    this.intro.t = 0;
+    this.intro.dur = duration;
+  }
+
+  /** 1 at the start of an arrival, 0 once settled (ease-out cubic). */
+  private get introAmount() {
+    const i = this.intro;
+    if (i.dur <= 0 || i.t >= i.dur) return 0;
+    const u = i.t / i.dur;
+    return Math.pow(1 - u, 3);
   }
 
   look(dx: number, dy: number) {
@@ -67,17 +83,21 @@ export class ThirdPersonCamera {
     this.smoothed.x += (_target.x - this.smoothed.x) * kh;
     this.smoothed.z += (_target.z - this.smoothed.z) * kh;
     this.smoothed.y += (_target.y - this.smoothed.y) * kv;
+    if (this.intro.t < this.intro.dur) this.intro.t += dt;
     this.apply(dt);
   }
 
   private apply(dt: number) {
-    const cp = Math.cos(this.pitch);
-    _dir.set(Math.sin(this.yaw) * cp, Math.sin(this.pitch), Math.cos(this.yaw) * cp);
+    const k = this.introAmount;
+    const pitch = Math.min(1.12, this.pitch + 0.3 * k);
+    const distance = this.distance + 3.4 * k;
+    const cp = Math.cos(pitch);
+    _dir.set(Math.sin(this.yaw) * cp, Math.sin(pitch), Math.cos(this.yaw) * cp);
     // Shoulder offset (to the right of the view direction).
     const focus = _focus.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw)).multiplyScalar(this.shoulder).add(this.smoothed);
     // Collision: cast from the focus point toward the desired camera position.
-    const hit = this.world.raycast(focus, _dir, this.distance + 0.3);
-    const allowed = hit !== null ? Math.max(0.55, hit - 0.3) : this.distance;
+    const hit = this.world.raycast(focus, _dir, distance + 0.3);
+    const allowed = hit !== null ? Math.max(0.55, hit - 0.3) : distance;
     // Pull in immediately, ease back out.
     if (allowed < this.current) this.current = allowed;
     else this.current += (allowed - this.current) * (1 - Math.exp(-4 * dt));

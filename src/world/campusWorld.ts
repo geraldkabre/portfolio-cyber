@@ -4,7 +4,7 @@ import type { MaterialLibrary } from './materials';
 import { createIsland } from './island';
 import { batchStatic } from './batch';
 import { PALETTE } from './palette';
-import { holoMaterial, holoTextMaterial, portalMaterial, ringMaterial, textTexture } from './fx';
+import { beamMaterial, holoMaterial, holoTextMaterial, portalMaterial, ringMaterial, textTexture } from './fx';
 import { PORTAL_RING, SITES, siteXZ, type Site } from './campus';
 import {
   CERTIFICATES, DISTRICTS, EDUCATION, EXPERIENCE, PROFILE, PROJECTS, RESEARCH, ROOTME, SKILLS, certificateImage,
@@ -20,8 +20,13 @@ export interface Portal {
   /** Inverse world matrix of the portal plane (trigger test in local space). */
   inverse: THREE.Matrix4;
   to: string;
-  uniforms: { uSurge: { value: number } };
+  uniforms: { uSurge: { value: number }; uNear: { value: number } };
+  /** World position of the portal (proximity feedback). */
+  position: THREE.Vector3;
 }
+
+/** Proximity feedback of a terminal: its floor ring brightens and a light column rises as the operator approaches. */
+interface TerminalFx { position: THREE.Vector3; ring: { uIntensity: { value: number } }; beam: THREE.Mesh; beamU: { uIntensity: { value: number } } }
 
 export interface Arrival { position: THREE.Vector3; yaw: number }
 
@@ -125,11 +130,36 @@ interface DistrictBuild {
 function terminalProp(cyber: Kit, x: number, z: number, rotY: number, color: string) {
   const g = new THREE.Group();
   g.add(place(cyber, 'Computer', { x, y: 0, z, rotY, scale: 1.5 }));
-  const ring = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.03, 64), ringMaterial(color, 2.2, 24, 0.2));
+  const ringMat = ringMaterial(color, 2.2, 24, 0.2);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.03, 64), ringMat);
   ring.rotation.x = -Math.PI / 2;
   ring.position.set(x, 0.04, z);
+  ring.name = 'terminal-ring';
+  ring.userData.noCollide = true;
   g.add(ring);
+  const beamMat = beamMaterial(color, 0);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 3.4, 40, 1, true), beamMat);
+  beam.position.set(x, 1.7, z);
+  beam.name = 'terminal-beam';
+  beam.visible = false;
+  beam.userData.noCollide = true;
+  g.add(beam);
   return g;
+}
+
+/** Floor lamps (MegaKit Prop_Light_Floor) lining the walk from the arrival point to the return portal. */
+function arrivalLamps(mega: Kit) {
+  const st = new THREE.Group();
+  const col = new THREE.Group();
+  for (const x of [-3.1, 3.1]) {
+    for (const z of [6.7, 9.0]) {
+      st.add(place(mega, 'Prop_Light_Floor', { x, y: 0, z, rotY: x < 0 ? Math.PI / 2 : -Math.PI / 2, scale: 1.1 }));
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.2, 10));
+      c.position.set(x, 0.6, z);
+      col.add(c);
+    }
+  }
+  return { st, col };
 }
 
 /** --------------------------------------------------------------- district landmarks (local frame: +Z faces Nexus Prime) */
@@ -358,6 +388,7 @@ export interface DistrictRuntime {
   root: THREE.Group;
   arrival: Arrival;
   update: (t: number) => void;
+  terminalFx: TerminalFx | null;
 }
 
 /**
@@ -388,7 +419,7 @@ export function createCampus(mega: Kit, cyber: Kit, lib: MaterialLibrary) {
     gate.colliders.rotation.copy(gate.group.rotation);
     colliders.add(gate.colliders);
     gate.group.updateMatrixWorld(true);
-    portals.push({ id: `nexus:${site.id}`, inverse: gate.group.matrixWorld.clone().invert(), to: site.id, uniforms: gate.uniforms });
+    portals.push({ id: `nexus:${site.id}`, inverse: gate.group.matrixWorld.clone().invert(), to: site.id, uniforms: gate.uniforms, position: new THREE.Vector3().setFromMatrixPosition(gate.group.matrixWorld) });
     nexusArrivals.set(site.id, { position: new THREE.Vector3(p.x, 0, p.z).addScaledVector(dir, -5.6), yaw: yawOf(-dir.x, -dir.z) });
 
     // ---- District island.
@@ -409,10 +440,28 @@ export function createCampus(mega: Kit, cyber: Kit, lib: MaterialLibrary) {
     back.colliders.position.copy(back.group.position);
     back.colliders.rotation.copy(back.group.rotation);
     build.colliders.add(back.colliders);
+    const lamps = arrivalLamps(mega);
+    build.static.add(lamps.st);
+    build.colliders.add(lamps.col);
     local.add(build.static, build.dynamic, build.colliders);
     local.updateMatrixWorld(true);
     back.group.updateMatrixWorld(true);
-    portals.push({ id: `${site.id}:nexus`, inverse: back.group.matrixWorld.clone().invert(), to: 'command', uniforms: back.uniforms });
+    portals.push({ id: `${site.id}:nexus`, inverse: back.group.matrixWorld.clone().invert(), to: 'command', uniforms: back.uniforms, position: new THREE.Vector3().setFromMatrixPosition(back.group.matrixWorld) });
+    // Terminal proximity feedback (the ring and the light column stay dynamic, outside the static batch).
+    const fxRing = build.static.getObjectByName('terminal-ring') as THREE.Mesh | undefined ?? build.dynamic.getObjectByName('terminal-ring') as THREE.Mesh | undefined;
+    const fxBeam = build.static.getObjectByName('terminal-beam') as THREE.Mesh | undefined ?? build.dynamic.getObjectByName('terminal-beam') as THREE.Mesh | undefined;
+    let terminalFx: TerminalFx | null = null;
+    if (fxRing && fxBeam) {
+      fxRing.parent!.remove(fxRing);
+      fxBeam.parent!.remove(fxBeam);
+      build.dynamic.add(fxRing, fxBeam);
+      terminalFx = {
+        position: build.terminal.clone().applyMatrix4(local.matrixWorld),
+        ring: (fxRing.material as THREE.ShaderMaterial).uniforms as TerminalFx['ring'],
+        beam: fxBeam,
+        beamU: (fxBeam.material as THREE.ShaderMaterial).uniforms as TerminalFx['beamU'],
+      };
+    }
     const terminalWorld = build.terminal.clone().applyMatrix4(local.matrixWorld);
     terminals.push({ id: site.id, panel: info.panel, position: terminalWorld, radius: 2.6, prompt: `Open: ${info.role}` });
     const arrivalPos = new THREE.Vector3(0, 0, 5.4).applyMatrix4(local.matrixWorld);
@@ -429,6 +478,7 @@ export function createCampus(mega: Kit, cyber: Kit, lib: MaterialLibrary) {
       id: site.id, center, root: district,
       arrival: { position: arrivalPos, yaw: yawOf(-toNexus.x, -toNexus.z) },
       update: (t) => { island.update(t); build.update?.(t); },
+      terminalFx,
     });
   }
   // Nexus portal frames are static: batch them (the energy surfaces and signs stay dynamic).
@@ -445,8 +495,25 @@ export function createCampus(mega: Kit, cyber: Kit, lib: MaterialLibrary) {
     setActive(id: string) {
       for (const d of districts) d.root.visible = d.id === id;
     },
-    update(t: number, activeId: string) {
-      districts.find((d) => d.id === activeId)?.update(t);
+    update(t: number, activeId: string, focus?: THREE.Vector3) {
+      const d = districts.find((x) => x.id === activeId);
+      d?.update(t);
+      if (!focus) return;
+      // Terminal: ring brightens and a light column rises within 6 m; it pulses once in reach (radius 2.6 m).
+      const fx = d?.terminalFx;
+      if (fx) {
+        const dist = Math.hypot(focus.x - fx.position.x, focus.z - fx.position.z);
+        const k = THREE.MathUtils.smoothstep(6.5 - dist, 0, 3.9);
+        const inReach = dist < 2.6 ? 1 : 0;
+        fx.ring.uIntensity.value = 2.2 + k * 2.6 + inReach * 1.2 * (0.5 + 0.5 * Math.sin(t * 5));
+        fx.beamU.uIntensity.value = k * (0.55 + inReach * 0.25);
+        fx.beam.visible = k > 0.01;
+      }
+      // Portals glow as the operator walks up to them.
+      for (const p of portals) {
+        const dist = Math.hypot(focus.x - p.position.x, focus.z - p.position.z) + Math.abs(focus.y - p.position.y) * 0.5;
+        p.uniforms.uNear.value = THREE.MathUtils.smoothstep(9 - dist, 0, 6.5);
+      }
     },
   };
 }

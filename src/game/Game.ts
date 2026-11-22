@@ -198,6 +198,7 @@ export class Game {
       (this.contactShadow.material as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.clamp(0.75 - height * 0.25, 0, 0.75);
       if (store.get().phase === 'play') this.keyLight.position.copy(this.player.renderPosition).add(_offset.set(Math.sin(this.cam!.yaw) * 1.6, 2.4, Math.cos(this.cam!.yaw) * 1.6));
     }
+    if (this.player && store.get().phase === 'play') this.world.focus.copy(this.player.renderPosition);
     this.world.update(dt, t, cam);
     this.statsTimer += dt;
     if (this.statsTimer > 0.5) {
@@ -362,6 +363,7 @@ export class Game {
       this.world.setActive(tp.target);
       this.player!.teleport(to.position, to.yaw);
       this.accumulator = 0;
+      if (!this.reducedMotion) this.cam!.arrive(); // establishing pull-in on the new island
       this.cam!.snapBehind(to.position, to.yaw);
       store.set({ flash: 0, district: tp.target });
     }
@@ -443,7 +445,7 @@ export class Game {
           phase: store.get().phase, panel: store.get().panel, prompt: store.get().prompt, location: store.get().location,
           position: p ? p.position.toArray().map((v) => +v.toFixed(3)) : null,
           yaw: p ? +p.yaw.toFixed(3) : null, gait: p?.gait ?? null, grounded: p?.grounded ?? null,
-          speed: p ? +p.horizontalSpeed.toFixed(3) : null, clip: p?.character.current?.getClip().name ?? null,
+          speed: p ? +p.horizontalSpeed.toFixed(3) : null, clip: p?.clipName ?? null,
           camYaw: this.cam ? +this.cam.yaw.toFixed(3) : null, camPitch: this.cam ? +this.cam.pitch.toFixed(3) : null,
           camPos: this.engine.camera.position.toArray().map((v) => +v.toFixed(2)),
           door: +this.world.cc.doorOpen.toFixed(2), stats: this.engine.stats(), world: this.world.stats,
@@ -465,6 +467,8 @@ export class Game {
       openPanel: (p: PanelId) => this.openPanel(p),
       travel: (id: string) => this.travel(id),
       active: () => this.world.active,
+      motion: () => (this.player ? { t: performance.now(), ...this.player.motion } : null),
+      speedTrace: (on: boolean) => { if (!this.player) return null; const tr = this.player.speedTrace; this.player.speedTrace = on ? [] : null; return tr; },
       terminals: () => this.world.interactables.map((i) => ({ id: i.id, panel: i.panel, position: i.position.toArray().map((v) => +v.toFixed(2)) })),
       portals: () => this.world.portals.map((q) => ({ id: q.id, to: q.to })),
       // Profiling toggles.
