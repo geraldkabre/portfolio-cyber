@@ -104,3 +104,8 @@ Voir **`MILESTONE_3_REPORT.md`** (résultats, captures, mesures) et **`ARCHITECT
 - ✔ Tests : 32 + 32 + 17 vérifications réussies sur la version de production.
 - ⏳ De votre côté : définir `VITE_CONTACT_EMAIL`, déposer `public/assets/profile/photo.jpg`, valider le push GitHub et le déploiement Netlify.
 - ➡ Pistes restantes : commandes tactiles (mobile), introduction cinématique (survol du campus), compression KTX2 des textures des personnages.
+
+## Mise à jour du 22/11/2026 (après-midi) — Visionaries, univers 3D, démarche, mode recruteur (voir `UPGRADE_REPORT.md`)
+- ✔ Visionaries (en-tête du mode recruteur) : 50/50 ; mode recruteur animé : 23/23 ; démarche : 25/25 à 60/30/20 images/s.
+- ⏳ À relancer quand la mémoire le permet : `run-e2e.mjs --operator female`, `run-ui.mjs`, `run-touch.mjs` (campagne interrompue par le système).
+- ⏳ De votre côté : essayer sur un vrai téléphone et, si possible, sur Safari / Firefox ; valider push GitHub et déploiement Netlify.

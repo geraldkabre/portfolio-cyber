@@ -37,8 +37,13 @@ for (let i = 0; i < Math.round(time * 30); i++) engine.frame(performance.now(), 
 
 window.__shot = async (name: string) => {
   const i = shots.findIndex((s) => s.name === name);
+  const switching = shots[i].active !== world.active;
   setShot(i);
-  for (let k = 0; k < 3; k++) engine.frame(performance.now(), 1 / 30);
+  // A newly shown district compiles its shaders asynchronously: give it a few real frames before the capture.
+  for (let k = 0; k < (switching ? 24 : 3); k++) {
+    engine.frame(performance.now(), 1 / 30);
+    if (switching) await new Promise((r) => requestAnimationFrame(() => r(null)));
+  }
   return name;
 };
 const st = engine.stats();

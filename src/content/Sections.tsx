@@ -142,7 +142,7 @@ export function ResearchSection({ onZoom }: { onZoom?: Zoom }) {
       <div className="sec-figures">
         {RESEARCH.figures.map((f) => (
           <button key={f.src} type="button" className="sec-figure" onClick={() => onZoom?.({ src: f.src, alt: f.caption })}>
-            <img src={f.src} alt="" loading="lazy" />
+            <img src={f.src} alt="" loading="lazy" width={f.w} height={f.h} />
             <span>{f.caption}</span>
           </button>
         ))}

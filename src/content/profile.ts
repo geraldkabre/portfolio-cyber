@@ -31,9 +31,9 @@ export const PROFILE = {
   flag: '🇧🇫',
   current: 'Currently studying Mandarin Chinese at Qingdao Binhai University, China (since March 2026)',
   summary:
-    'Cybersecurity engineer from Burkina Faso, focused on network security and software development. ' +
-    'I design and secure network infrastructures — segmentation, filtering, intrusion detection, access control — ' +
-    'and I practise offensive and defensive security on Root-Me.',
+    'My bachelor’s thesis redesigned a flat university network around pfSense: five isolated VLANs, Dual-WAN, ' +
+    'Suricata and 802.1X. I also build web applications (Django, Spring Boot, Angular) and practise offensive and ' +
+    'defensive security on Root-Me, where I have documented eleven write-ups.',
   languages: [
     { name: 'French', level: 'Native' },
     { name: 'English', level: 'B2 (Duolingo English Test 110)' },
@@ -188,11 +188,11 @@ export const RESEARCH = {
     'isolated VLANs, enforces a deny-by-default policy and adds web filtering, intrusion detection and prevention, ' +
     'WPA-Enterprise authentication and centralized logging.',
   figures: [
-    { src: '/assets/profile/research/architecture-before.webp', caption: 'Initial architecture: flat network, no VLANs, no central firewall' },
-    { src: '/assets/profile/research/architecture-after.webp', caption: 'Secured architecture: pfSense, Dual-WAN, redundant core with RSTP, five VLANs' },
-    { src: '/assets/profile/research/test-vlan-isolation.webp', caption: 'Inter-VLAN isolation: students cannot reach administration' },
-    { src: '/assets/profile/research/test-web-filtering.webp', caption: 'Web filtering: a blocked domain is denied by the proxy' },
-    { src: '/assets/profile/research/test-suricata-alerts.webp', caption: 'Suricata alerts on an Nmap scan; the source is blocked' },
+    { src: '/assets/profile/research/architecture-before.webp', w: 867, h: 507, caption: 'Initial architecture: flat network, no VLANs, no central firewall' },
+    { src: '/assets/profile/research/architecture-after.webp', w: 861, h: 447, caption: 'Secured architecture: pfSense, Dual-WAN, redundant core with RSTP, five VLANs' },
+    { src: '/assets/profile/research/test-vlan-isolation.webp', w: 830, h: 362, caption: 'Inter-VLAN isolation: students cannot reach administration' },
+    { src: '/assets/profile/research/test-web-filtering.webp', w: 857, h: 435, caption: 'Web filtering: a blocked domain is denied by the proxy' },
+    { src: '/assets/profile/research/test-suricata-alerts.webp', w: 867, h: 421, caption: 'Suricata alerts on an Nmap scan; the source is blocked' },
   ],
   pdf: '/assets/docs/thesis-pfsense-umet-burkina.pdf',
 } as const;

@@ -98,7 +98,8 @@ if (uPlinth > 0.5 && r < ${LAYOUT.plinthRadius.toFixed(2)}) {
 }
 // Subtle animated lighting: a wave of light runs outward along the seams every 9 s, fading as it travels.
 float waveR = mod(uTime, 9.0) * 6.5;
-float wave = exp(-pow((r - waveR) / 1.4, 2.0)) * (1.0 - smoothstep(20.0, 58.0, waveR));
+float wd = (r - waveR) / 1.4; // squared by hand: pow() of a negative base is undefined (NaN on D3D)
+float wave = exp(-wd * wd) * (1.0 - smoothstep(20.0, 58.0, waveR));
 glow += wave * (0.08 + 0.85 * seam);
 diffuseColor.rgb *= (0.86 + 0.22 * panel) * (1.0 - 0.6 * seam);
 `)

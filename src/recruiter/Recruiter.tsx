@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { initRecruiterMotion } from './motion';
 import {
   CertificatesSection, ContactSection, EducationSection, ExperienceSection, LanguagesSection, Lightbox, ProfileSection,
   ProjectsSection, ResearchSection, RootMeSection, SkillsSection,
@@ -13,8 +14,10 @@ const NAV = [
 /** Recruiter Mode: the complete portfolio on one fast page (no 3D engine, no audio). */
 export function Recruiter() {
   const [zoom, setZoom] = useState<{ src: string; alt: string } | null>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+  useEffect(() => initRecruiterMotion(pageRef.current!), []);
   return (
-    <>
+    <div className="rc-page" ref={pageRef}>
       <a className="rc-skip" href="#profile">Skip to the portfolio</a>
       <div className="rc-chrome">
         <p className="rc-brand">CYBERVERSE<span> · Recruiter Mode</span></p>
@@ -27,7 +30,10 @@ export function Recruiter() {
         </div>
       </header>
       <nav className="rc-nav" aria-label="Sections">
-        <div className="rc-wrap">{NAV.map(([id, label]) => <a key={id} href={`#${id}`}>{label}</a>)}</div>
+        <div className="rc-wrap">
+          <span className="rc-nav-ink" aria-hidden="true" />
+          {NAV.map(([id, label]) => <a key={id} href={`#${id}`}>{label}</a>)}
+        </div>
       </nav>
       <main id="main" className="rc-wrap">
         <EducationSection />
@@ -47,6 +53,6 @@ export function Recruiter() {
         </div>
       </footer>
       <Lightbox item={zoom} onClose={() => setZoom(null)} />
-    </>
+    </div>
   );
 }

@@ -31,6 +31,7 @@ export function Visionaries({ onOpen }: { onOpen?: (section: string) => void }) 
     <section ref={rootRef} className="vis-root" aria-roledescription="carousel" aria-label="Portfolio overview: nine parts">
       <Stage scenes={SCENES} />
       <div className="vis-title" aria-live={announce ? 'polite' : 'off'}>
+        <div className="vis-title-inner">
         {revealed && (
           <>
             <h2 key={`t${focal}`} className="vis-title-name">{scene.title}</h2>
@@ -42,6 +43,7 @@ export function Visionaries({ onOpen }: { onOpen?: (section: string) => void }) 
             </a>
           </>
         )}
+        </div>
       </div>
       <button type="button" className="vis-chev vis-chev-left" aria-label="Rotate left"><Chevron dir={-1} /></button>
       <button type="button" className="vis-chev vis-chev-right" aria-label="Rotate right"><Chevron dir={1} /></button>

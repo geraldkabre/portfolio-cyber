@@ -38,10 +38,32 @@ img { max-width: 100%; }
   .rc-switch { font-size: 11px; padding: 0.4rem 0.75rem; }
   .rc-switch span { display: none; }
 }
-.rc-nav { position: sticky; top: 0; z-index: 5; background: rgba(7, 11, 24, 0.88); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
-.rc-nav .rc-wrap { display: flex; gap: 0.15rem; overflow-x: auto; scrollbar-width: none; }
-.rc-nav a { flex: none; padding: 0.85rem 0.65rem; color: var(--text-dim); text-decoration: none; font: 600 0.76rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
-.rc-nav a:hover { color: var(--cyan); }
+.rc-nav {
+  position: sticky; top: 0; z-index: 5; background: rgba(7, 11, 24, 0.82); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.rc-nav.is-stuck { background: rgba(7, 11, 24, 0.94); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
+.rc-nav .rc-wrap { position: relative; display: flex; gap: 0.15rem; overflow-x: auto; scrollbar-width: none; }
+.rc-nav .rc-wrap::-webkit-scrollbar { display: none; }
+.rc-nav a { flex: none; padding: 0.85rem 0.65rem; color: var(--text-dim); text-decoration: none; font: 600 0.76rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.25s; }
+.rc-nav a:hover { color: var(--ice); }
+.rc-nav a[aria-current] { color: var(--cyan); }
+/* Sliding indicator under the active section (moved by GSAP). */
+.rc-nav-ink { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; border-radius: 2px; background: linear-gradient(90deg, var(--eblue), var(--cyan)); box-shadow: 0 0 12px rgba(0, 229, 255, 0.55); opacity: 0; visibility: hidden; pointer-events: none; }
+
+/* Rhythm and hierarchy of the long page (the shared sections are denser inside the 3D panels). */
+.rc-page main .sec { padding: clamp(44px, 6vw, 72px) 0 0; }
+.rc-page main .sec h2 { font-size: clamp(1.45rem, 2.3vw, 1.9rem); letter-spacing: 0.01em; }
+.rc-page main .sec-head { margin-bottom: 1.25rem; }
+
+/* Interactive cards: lift + pointer spotlight (tilt by GSAP on fine pointers). */
+.rc-page .sec-card { position: relative; overflow: hidden; transition: border-color 0.3s, box-shadow 0.35s, background 0.35s; }
+.rc-page .sec-card::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 0.35s;
+  background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 0%), rgba(0, 229, 255, 0.11), transparent 48%);
+}
+.rc-page .sec-card.is-hot, .rc-page .sec-card:focus-within { border-color: rgba(0, 229, 255, 0.45); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35); }
+.rc-page .sec-card.is-hot::after { opacity: 1; }
 .rc-footer { margin-top: 56px; padding: 26px 0 40px; border-top: 1px solid var(--line); color: var(--text-dim); font-size: 0.88rem; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
@@ -49,6 +71,7 @@ img { max-width: 100%; }
   @page { size: A4; margin: 12mm; }
   :root { --text: #111827; --text-dim: #4b5563; --ice: #0b1326; --cyan: #0b5cad; --line: #d1d5db; }
   body { background: #fff !important; font-size: 10pt; }
+  .rc-page * { opacity: 1 !important; visibility: visible !important; transform: none !important; filter: none !important; }
   .rc-nav, .rc-skip, .rc-footer, .rc-chrome, .sec-figures, .sec-gh, .sec-lightbox, .sec-cert button { display: none !important; }
   .sec { padding: 8pt 0 0; break-inside: avoid-page; }
   .sec-card, .sec-timeline li, .sec-cert, .sec-langs li, .sec-contact li { background: none !important; }

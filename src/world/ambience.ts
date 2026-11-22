@@ -55,10 +55,10 @@ export function createAmbience(particles: number) {
     group.add(m);
     return m;
   };
-  halo(0, -2.2, 0, LAYOUT.islandRadius, '#3a5bff', 0.32);
+  halo(0, -2.2, 0, LAYOUT.islandRadius, '#3a5bff', 0.26);
   for (const s of SITES) {
     const p = siteXZ(s.az, s.dist);
-    halo(p.x, s.y - 1.4, p.z, DISTRICT_RADIUS, s.color, 0.3);
+    halo(p.x, s.y - 1.4, p.z, DISTRICT_RADIUS, s.color, 0.22);
   }
 
   // ---- District motes (one Points object that moves to the active district).
