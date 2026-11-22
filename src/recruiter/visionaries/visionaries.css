@@ -93,8 +93,8 @@
   text-align: center; color: var(--vis-ink); pointer-events: none; z-index: 60; padding: 0 24px;
 }
 .vis-title-name {
-  font-family: "Poppins", system-ui, sans-serif; font-weight: 500;
-  font-size: clamp(21px, 3vw, 37px); line-height: 1.16; letter-spacing: 0.015em; margin: 0;
+  font-family: var(--vis-sans); font-weight: 700;
+  font-size: clamp(24px, 3.4vw, 44px); line-height: 1.02; letter-spacing: -0.04em; margin: 0;
   max-width: min(46vw, 470px); margin-inline: auto; text-wrap: balance;
   text-shadow: 0 2px 30px rgba(0, 0, 0, 0.55);
   animation: vis-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -135,18 +135,20 @@
 
 /* ---------- way into the full portfolio */
 .vis-scroll {
-  position: absolute; left: 50%; bottom: clamp(14px, 3.2vh, 30px); transform: translateX(-50%); z-index: 300;
-  display: inline-flex; gap: 0.5em; align-items: center; padding: 0.4em 0.8em;
-  color: var(--vis-chrome); font: 500 11px/1 var(--vis-sans); letter-spacing: 0.24em; text-transform: uppercase; text-decoration: none;
-  transition: color 0.25s;
+  position: absolute; left: 50%; bottom: clamp(14px, 3.2vh, 30px); transform: translateX(-50%); z-index: 300; margin: 0;
+  white-space: nowrap; pointer-events: none;
+  color: var(--vis-chrome); font: 500 11px/1 var(--vis-sans); letter-spacing: 0.24em; text-transform: uppercase;
 }
-.vis-scroll:hover { color: var(--vis-ink); }
-.vis-scroll span { display: inline-block; animation: vis-nudge 2.4s ease-in-out infinite; }
-@keyframes vis-nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+.vis-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.vis-sr:focus-within { width: auto; height: auto; clip-path: none; left: 16px; bottom: 56px; z-index: 400; padding: 10px 14px; border-radius: 12px; background: rgba(10, 8, 6, 0.85); }
+.vis-sr ul { list-style: none; margin: 0; padding: 0; }
+.vis-sr a { color: var(--vis-ink); font: 500 13px/1.8 var(--vis-sans); }
+/* A world page covers the stage: the stage stops taking input. */
+.vis-root.is-suspended { pointer-events: none; }
 
 /* ---------- phones (shorter side < 640 px, set by the engine) */
 .vis-root.is-phone .vis-chev { display: none; }
-.vis-root.is-phone .vis-title-name { font-size: clamp(19px, 5.2vw, 26px); max-width: 50vw; }
+.vis-root.is-phone .vis-title-name { font-size: clamp(21px, 6vw, 30px); max-width: 50vw; }
 .vis-root.is-phone .vis-title-sub { font-size: 10px; letter-spacing: 0.24em; text-indent: 0.24em; max-width: 52vw; margin-top: 12px; }
 .vis-root.is-phone .vis-cta { margin-top: 14px; font-size: 10px; }
 @media (max-width: 640px) { .vis-chev { display: none; } }
@@ -155,7 +157,6 @@
 @media (prefers-reduced-motion: reduce) {
   .vis-bg { animation: none; }
   .vis-title-name, .vis-title-sub, .vis-cta { animation-duration: 0.01ms; animation-delay: 0s; }
-  .vis-scroll span { animation: none; }
   .vis-root { transition: none; }
 }
 @media print { .vis-root { display: none; } }

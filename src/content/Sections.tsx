@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import {
-  CERTIFICATES, CERTIFICATE_ISSUER, EDUCATION, EXPERIENCE, GITHUB, LEVEL_VALUE, PROFILE, PROJECTS, RESEARCH, ROOTME,
+  CERTIFICATES, CERTIFICATE_ISSUER, EDUCATION, EXPERIENCE, GITHUB, PROFILE, PROJECTS, RESEARCH, ROOTME,
   ROOTME_METHOD, SKILLS, certificateImage, certificateOnGitHub, rootmeLink,
 } from './profile';
 
@@ -208,15 +208,7 @@ export function SkillsSection() {
       <h3 className="sec-subtitle">Security</h3>
       <p className="sec-tags">{SKILLS.security.map((s) => <span key={s}>{s}</span>)}</p>
       <h3 className="sec-subtitle">Development</h3>
-      <ul className="sec-levels">
-        {SKILLS.development.map((d) => (
-          <li key={d.name}>
-            <span>{d.name}</span>
-            <span className="sec-bar" aria-hidden="true"><i style={{ width: `${(LEVEL_VALUE[d.level] ?? 1) * 33 + 8}%` }} /></span>
-            <span className="sec-dim">{d.level}</span>
-          </li>
-        ))}
-      </ul>
+      <p className="sec-tags">{SKILLS.development.map((s) => <span key={s}>{s}</span>)}</p>
     </section>
   );
 }

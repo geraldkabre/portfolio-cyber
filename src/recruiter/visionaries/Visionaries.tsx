@@ -8,7 +8,7 @@ import './visionaries.css';
  * Visionaries — full-viewport hero of Recruiter Mode: nine portfolio parts ride a ring of liquid-glass discs; the one
  * at the top fills the stage. Spec: docs/cyberverse/pantheon.md. The DOM is rendered once; the engine animates it.
  */
-export function Visionaries({ onOpen }: { onOpen?: (section: string) => void }) {
+export function Visionaries({ onOpen }: { onOpen: (world: string) => void }) {
   const rootRef = useRef<HTMLElement>(null);
   const [focal, setFocal] = useState<number>(VIS.INITIAL);
   const [revealed, setRevealed] = useState(false);
@@ -20,7 +20,7 @@ export function Visionaries({ onOpen }: { onOpen?: (section: string) => void }) 
     const engine = new VisionariesEngine(rootRef.current!, SCENES, {
       onFocal: (i, byUser) => { setFocal(i); setAnnounce(byUser); },
       onReveal: () => setRevealed(true),
-      onOpen: (i) => openSection(SCENES[i].section, openRef.current),
+      onOpen: (i) => openRef.current(SCENES[i].id),
     });
     engine.start();
     return () => engine.destroy();
@@ -36,10 +36,10 @@ export function Visionaries({ onOpen }: { onOpen?: (section: string) => void }) 
           <>
             <h2 key={`t${focal}`} className="vis-title-name">{scene.title}</h2>
             <p key={`c${focal}`} className="vis-title-sub">{scene.caption}</p>
-            <a key={`a${focal}`} className="vis-cta" href={`#${scene.section}`}
-              onClick={(e) => { e.preventDefault(); openSection(scene.section, onOpen); }}>
-              Open {scene.id === 'profile' ? 'profile' : scene.title.toLowerCase()}
-              <span aria-hidden="true"> ↓</span>
+            <a key={`a${focal}`} className="vis-cta" href={`#/${scene.id}`}
+              onClick={(e) => { e.preventDefault(); onOpen(scene.id); }}>
+              Enter this world
+              <span aria-hidden="true"> →</span>
             </a>
           </>
         )}
@@ -47,16 +47,13 @@ export function Visionaries({ onOpen }: { onOpen?: (section: string) => void }) 
       </div>
       <button type="button" className="vis-chev vis-chev-left" aria-label="Rotate left"><Chevron dir={-1} /></button>
       <button type="button" className="vis-chev vis-chev-right" aria-label="Rotate right"><Chevron dir={1} /></button>
-      <a className="vis-scroll" href="#profile" onClick={(e) => { e.preventDefault(); openSection('profile', onOpen); }}>
-        Full portfolio <span aria-hidden="true">↓</span>
-      </a>
+      <p className="vis-scroll" aria-hidden="true">Turn the ring · tap a world to enter</p>
+      {/* Every world, directly reachable with the keyboard or a screen reader. */}
+      <nav className="vis-sr" aria-label="The nine worlds">
+        <ul>{SCENES.map((s) => <li key={s.id}><a href={`#/${s.id}`} onClick={(e) => { e.preventDefault(); onOpen(s.id); }}>{s.title}: {s.caption}</a></li>)}</ul>
+      </nav>
     </section>
   );
-}
-
-function openSection(id: string, onOpen?: (section: string) => void) {
-  if (onOpen) onOpen(id);
-  else document.getElementById(id)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
 
 /** Static layers (rendered once, never re-rendered: the engine owns their styles). */

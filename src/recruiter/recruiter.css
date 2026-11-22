@@ -1,24 +1,16 @@
 @import '../styles/tokens.css';
-@import '../styles/sections.css';
 
+/* Recruiter Mode: the Visionaries ring + world pages (src/recruiter/worlds). One typeface, Geist, as in the
+   motion-design reference: bold and tight for display, regular for text. */
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 64px; }
 body {
-  margin: 0; background: var(--navy-950); color: var(--text); font: 16px/1.6 var(--font);
-  background-image: radial-gradient(ellipse at 20% -10%, rgba(47, 123, 255, 0.16), transparent 55%),
-    radial-gradient(ellipse at 100% 0%, rgba(139, 92, 255, 0.12), transparent 50%);
-  background-attachment: fixed;
+  margin: 0; background: #04060d; color: var(--text);
+  font: 16px/1.6 "Geist", var(--font); -webkit-font-smoothing: antialiased;
 }
 a { color: var(--cyan); }
 :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
 img { max-width: 100%; }
 
-.rc-wrap { width: min(1100px, 100%); margin: 0 auto; padding: 0 20px; }
-.rc-skip { position: absolute; left: -999px; top: 8px; z-index: 10; background: var(--cyan); color: #04121a; padding: 0.5rem 0.8rem; border-radius: 6px; }
-.rc-skip:focus { left: 12px; }
-.rc-hero { padding: clamp(24px, 5vw, 48px) 0 24px; border-bottom: 1px solid var(--line); }
-.rc-hero .sec { padding-top: 12px; }
-.rc-hero .sec-name { font-size: clamp(1.9rem, 5vw, 3rem); font-weight: 400; margin: 0; line-height: 1.15; }
 /* Top chrome over the Visionaries stage (warm ink of the stage, no saturated colour). */
 .rc-chrome {
   position: absolute; top: 0; left: 0; right: 0; z-index: 400; display: flex; justify-content: space-between; align-items: center;
@@ -26,9 +18,9 @@ img { max-width: 100%; }
   font-family: "Geist", var(--font);
 }
 .rc-chrome > * { pointer-events: auto; }
-.rc-brand { margin: 0; font-size: 11px; font-weight: 500; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(243, 236, 224, 0.72); }
+.rc-brand { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(243, 236, 224, 0.72); }
 .rc-switch {
-  font-size: 12px; letter-spacing: 0.04em; padding: 0.45rem 0.9rem; border: 1px solid rgba(243, 236, 224, 0.24); border-radius: 999px;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.02em; padding: 0.45rem 0.9rem; border: 1px solid rgba(243, 236, 224, 0.24); border-radius: 999px;
   color: #f3ece0; background: rgba(10, 8, 6, 0.3); text-decoration: none; backdrop-filter: blur(8px); transition: background 0.25s, border-color 0.25s;
 }
 .rc-switch:hover { background: rgba(243, 236, 224, 0.1); border-color: rgba(243, 236, 224, 0.45); }
@@ -38,41 +30,29 @@ img { max-width: 100%; }
   .rc-switch { font-size: 11px; padding: 0.4rem 0.75rem; }
   .rc-switch span { display: none; }
 }
-.rc-nav {
-  position: sticky; top: 0; z-index: 5; background: rgba(7, 11, 24, 0.82); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
-  transition: background 0.3s, box-shadow 0.3s;
+
+/* One quiet line under the stage. */
+.rc-footer {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.6rem 1.5rem;
+  padding: 22px clamp(16px, 3vw, 40px) 28px; border-top: 1px solid rgba(120, 210, 255, 0.12); color: rgba(233, 242, 255, 0.62); font-size: 13px;
 }
-.rc-nav.is-stuck { background: rgba(7, 11, 24, 0.94); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
-.rc-nav .rc-wrap { position: relative; display: flex; gap: 0.15rem; overflow-x: auto; scrollbar-width: none; }
-.rc-nav .rc-wrap::-webkit-scrollbar { display: none; }
-.rc-nav a { flex: none; padding: 0.85rem 0.65rem; color: var(--text-dim); text-decoration: none; font: 600 0.76rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.25s; }
-.rc-nav a:hover { color: var(--ice); }
-.rc-nav a[aria-current] { color: var(--cyan); }
-/* Sliding indicator under the active section (moved by GSAP). */
-.rc-nav-ink { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; border-radius: 2px; background: linear-gradient(90deg, var(--eblue), var(--cyan)); box-shadow: 0 0 12px rgba(0, 229, 255, 0.55); opacity: 0; visibility: hidden; pointer-events: none; }
+.rc-footer p { margin: 0; }
+.rc-footer-name { color: #f4f8ff; font-weight: 600; letter-spacing: -0.01em; }
+.rc-footer-name span { color: rgba(233, 242, 255, 0.55); font-weight: 400; }
+.rc-footer-links { display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem; }
+.rc-footer-links a { color: rgba(233, 242, 255, 0.78); text-decoration: none; transition: color 0.25s; }
+.rc-footer-links a:hover { color: var(--cyan); }
 
-/* Rhythm and hierarchy of the long page (the shared sections are denser inside the 3D panels). */
-.rc-page main .sec { padding: clamp(44px, 6vw, 72px) 0 0; }
-.rc-page main .sec h2 { font-size: clamp(1.45rem, 2.3vw, 1.9rem); letter-spacing: 0.01em; }
-.rc-page main .sec-head { margin-bottom: 1.25rem; }
-
-/* Interactive cards: lift + pointer spotlight (tilt by GSAP on fine pointers). */
-.rc-page .sec-card { position: relative; overflow: hidden; transition: border-color 0.3s, box-shadow 0.35s, background 0.35s; }
-.rc-page .sec-card::after {
-  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 0.35s;
-  background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 0%), rgba(0, 229, 255, 0.11), transparent 48%);
-}
-.rc-page .sec-card.is-hot, .rc-page .sec-card:focus-within { border-color: rgba(0, 229, 255, 0.45); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35); }
-.rc-page .sec-card.is-hot::after { opacity: 1; }
-.rc-footer { margin-top: 56px; padding: 26px 0 40px; border-top: 1px solid var(--line); color: var(--text-dim); font-size: 0.88rem; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-
+.rc-print { display: none; }
 @media print {
-  @page { size: A4; margin: 12mm; }
-  :root { --text: #111827; --text-dim: #4b5563; --ice: #0b1326; --cyan: #0b5cad; --line: #d1d5db; }
-  body { background: #fff !important; font-size: 10pt; }
-  .rc-page * { opacity: 1 !important; visibility: visible !important; transform: none !important; filter: none !important; }
-  .rc-nav, .rc-skip, .rc-footer, .rc-chrome, .sec-figures, .sec-gh, .sec-lightbox, .sec-cert button { display: none !important; }
-  .sec { padding: 8pt 0 0; break-inside: avoid-page; }
-  .sec-card, .sec-timeline li, .sec-cert, .sec-langs li, .sec-contact li { background: none !important; }
+  @page { size: A4; margin: 14mm; }
+  body { background: #fff !important; color: #111827; font-size: 10.5pt; }
+  .vis-root, .rc-chrome, .rc-footer, .w-layer { display: none !important; }
+  .rc-print { display: block; }
+  .rc-print h1 { margin: 0 0 4pt; font-size: 20pt; letter-spacing: -0.02em; }
+  .rc-print h2 { margin: 12pt 0 2pt; font-size: 12.5pt; }
+  .rc-print p, .rc-print li { margin: 2pt 0; }
+  .rc-print ul { margin: 2pt 0; padding-left: 14pt; }
+  .rc-print-world { break-inside: avoid; }
+  .rc-print-link { color: #0b5cad; font-size: 9pt; word-break: break-all; }
 }

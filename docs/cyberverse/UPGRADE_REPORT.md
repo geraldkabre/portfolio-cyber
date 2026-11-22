@@ -142,3 +142,43 @@ Corrections :
 - **Pieds** : ils ne s'ajustent pas au sol en pente ou sur les marches (pas d'IK). Le glissement est réduit par la cadence, pas supprimé à 100 %.
 - **Polices** : Poppins et Geist viennent de Google Fonts. Si elles sont bloquées, des polices système les remplacent.
 - **Musique et verrouillage du pointeur** : non vérifiables sans affichage (déjà signalé).
+
+---
+
+## 7. Mise à jour du soir — mode recruteur en « mondes » (22/11/2026)
+
+À ta demande :
+- **Description courte** : « Cybersecurity graduate passionate about network security, AI security, and building practical solutions to real-world security challenges. » Elle remplace le résumé long, dans le mode recruteur et dans le dossier 3D.
+- **Chaque monde ouvre sa propre page** (`/recruiter/#/education`…), au lieu de faire défiler vers le bas de la page :
+  - **transition au ralenti** : un cercle s'ouvre depuis le disque, va vite, ralentit fortement au milieu, puis remplit l'écran (1,9 s, ease GSAP *SlowMo*). Pendant ce temps, l'anneau derrière avance et se floute, et le contenu apparaît en passant du flou au net ;
+  - **navigation** : flèches ← → (boutons et clavier), « All worlds », Échap ou le bouton Retour du navigateur referment la page et ramènent ce monde en haut de l'anneau ;
+  - **lien partageable** : on peut envoyer directement le lien d'un monde.
+- **Site court** : les longues sections qui recopiaient GitHub sont supprimées.
+  - Il reste l'anneau, une ligne de pied de page et neuf résumés.
+  - Chaque résumé a un gros bouton vers la bonne page GitHub : profil, README, projets, certificats, write-ups, compétences.
+  - Les détails (méthode du mémoire, tableau Root-Me, figures) restent sur GitHub.
+- **Compétences sans niveaux**. Outils ajoutés d'après le mémoire (implémentation et tests uniquement, pas les « perspectives ») : Squid + SquidGuard, pfBlockerNG, SARG, Dual-WAN failover, RSTP & Port Security, VMware Workstation, Nmap, 802.1X / RADIUS (WPA-Enterprise).
+- **Typographie et animations** inspirées de ta vidéo, avec tes couleurs :
+  - police Geist, grasse et serrée, phrases courtes terminées par un point (« One network, rebuilt. », « Break it. Explain it. ») ;
+  - chiffres géants qui défilent avec un flou de mouvement (6, 11, 2026…) ;
+  - grand mot en fond derrière le visuel, halo lumineux dessous, apparitions floues qui deviennent nettes.
+- **Impression** : un résumé imprimable de tous les mondes.
+- Les langues parlées gardent leur niveau court (natif, B2, en apprentissage). J'ai compris « langages » comme les langages de programmation. Si tu voulais parler des langues, c'est une ligne à changer.
+
+Corrections faites au passage :
+- l'animation de plongée démarre une fois la page prête : sa première image n'est plus sautée ;
+- un clic rapide sur « suivant » pendant une transition fonctionne ;
+- la rotation automatique ne reste plus bloquée après la fermeture d'un monde à la souris ;
+- les poids d'animation négligeables sont mis exactement à zéro, pour que le mixer ne calcule pas d'animations invisibles.
+
+### Vérifications de ce soir (version de production)
+| Suite | Résultat |
+|---|---|
+| Mondes (`run-recruiter.mjs`) : plongée au ralenti (rayon 61 px → plein écran ; 1,14 px/ms au départ, 0,07 au milieu), 9 mondes et liens GitHub, compteurs, flèches, Retour, lien direct, téléphone, mouvement réduit, impression | **22 / 22** |
+| Visionaries (`run-visionaries.mjs`) | **51 / 51** |
+| Parcours 3D, NEON FIGHTER + et Cyber JT | **32 / 32** chacun |
+| Interface | **17 / 17** |
+| Tactile | **7 / 7** |
+| Démarche à 60, 30 et 20 images/s | **25 / 25** |
+
+Performance : 54,6 images/s (NEON FIGHTER +) et 50,5 (Cyber JT) sur la course scriptée, contre 67,9 à midi **pour le même code de démarche**. La machine était chargée pendant ces mesures : uTorrent tournait, avec une charge de 27 % au repos. Une mesure sur une machine au repos reste à faire.

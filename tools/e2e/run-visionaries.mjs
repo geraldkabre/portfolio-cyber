@@ -29,6 +29,9 @@ async function open(opts = {}) {
   if (opts.reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto(BASE + '/recruiter/' + (opts.query ?? ''), { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__vis && window.__vis.state.entranceStart + window.__vis.state.enter > 0, null, { timeout: 30000 });
+  // The recruiter page is now one screen tall: a spacer stands in for content below the stage, so the checks can
+  // prove the stage never traps page scrolling and stops its GPU work once scrolled away.
+  await page.evaluate(() => { const s = document.createElement('div'); s.id = 'test-spacer'; s.style.height = '2400px'; document.body.appendChild(s); });
   return { ctx, page, logs, bad };
 }
 const vis = (page) => page.evaluate(() => window.__vis.state);
@@ -245,13 +248,17 @@ try {
     check('tap a disc → it rotates to the top', (await vis(page)).focal === target, `focal ${(await vis(page)).focal} target ${target}`);
     const fb = await page.locator(`.vis-med[data-index="${target}"]`).boundingBox();
     await page.mouse.click(fb.x + fb.width / 2, fb.y + fb.height / 2);
-    await sleep(1400);
-    const scrolled = await page.evaluate(() => scrollY);
-    check('tap the focal disc → its portfolio section opens', scrolled > 600, `scrollY=${scrolled}`);
-    await page.evaluate(() => scrollTo(0, 0));
-    await sleep(500);
+    await sleep(2600);
+    const opened = await page.evaluate(() => ({ hash: location.hash, layer: !!document.querySelector('.w-layer'), suspended: window.__vis.state.suspended, ticking: window.__vis.state.ticking }));
+    check('tap the focal disc → its world page opens (the ring pauses behind it)', opened.hash === `#/${['profile','education','experience','projects','certifications','rootme','skills','languages','contact'][target]}` && opened.layer && opened.suspended && !opened.ticking, JSON.stringify(opened));
+    await page.keyboard.press('Escape');
+    await sleep(1600);
+    const closed = await page.evaluate(() => ({ hash: location.hash, layer: !!document.querySelector('.w-layer'), ticking: window.__vis.state.ticking, focal: window.__vis.state.focal }));
+    check('closing the world returns to the same disc at the top of the ring', closed.hash === '' && !closed.layer && closed.ticking && closed.focal === target, JSON.stringify(closed));
 
     // Auto-rotate: waits USER_IDLE (4.4 s) after the last input, then dwells AUTO_INTERVAL (3.6 s) per scene.
+    // (A mouse reader clicks the stage background: keyboard focus left by Esc no longer holds the ring.)
+    await page.mouse.click(8, 450);
     await hold(page);
     const auto = await record(page, 9800);
     const steps = auto.filter((s, i) => i > 0 && s[2] !== auto[i - 1][2]).map((s) => s[0]);

@@ -142,6 +142,9 @@ export class Locomotion {
     const k = 1 - Math.exp(-rate * dt);
     let sum = 0;
     for (const s of SLOTS) { this.weight[s] += (t[s] - this.weight[s]) * k; sum += this.weight[s]; }
+    // Snap negligible weights to exactly 0: the mixer skips zero-weight actions entirely (no track evaluation).
+    sum = 0;
+    for (const s of SLOTS) { if (this.weight[s] < 1e-3) this.weight[s] = 0; sum += this.weight[s]; }
     for (const s of SLOTS) this.weight[s] /= sum || 1;
 
     // Shared gait phase: ground speed / blended stride length (stride = clip speed × clip length × body scale).

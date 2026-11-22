@@ -239,14 +239,14 @@ function buildSoc(mega: Kit, cyber: Kit, site: Site): DistrictBuild {
   dyn.add(net);
   const sec = textPanel([
     { text: 'SECURITY', size: 48, color: '#6ff3ff', weight: 700, spacing: 8 },
-    ...SKILLS.security.map((s) => ({ text: s, size: 36, color: '#ffffff', weight: 500 })),
+    ...SKILLS.security.map((s) => ({ text: s, size: 32, color: '#ffffff', weight: 500 })),
   ], 2.6, 2.6, { color: site.color });
   sec.position.set(-4.6, 2.4, -10.2);
   sec.rotation.y = 0.35;
   dyn.add(sec);
   const dev = textPanel([
     { text: 'DEVELOPMENT', size: 48, color: '#6ff3ff', weight: 700, spacing: 8 },
-    ...SKILLS.development.map((d) => ({ text: `${d.name} — ${d.level}`, size: 34, color: '#ffffff', weight: 500 })),
+    ...SKILLS.development.map((d) => ({ text: d, size: 34, color: '#ffffff', weight: 500 })),
   ], 2.6, 2.6, { color: site.color });
   dev.position.set(4.6, 2.4, -10.2);
   dev.rotation.y = -0.35;

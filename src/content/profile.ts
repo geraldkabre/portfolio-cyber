@@ -30,10 +30,10 @@ export const PROFILE = {
   location: 'Burkina Faso',
   flag: '🇧🇫',
   current: 'Currently studying Mandarin Chinese at Qingdao Binhai University, China (since March 2026)',
+  /** The owner's own one-line introduction (22/11/2026). */
   summary:
-    'My bachelor’s thesis redesigned a flat university network around pfSense: five isolated VLANs, Dual-WAN, ' +
-    'Suricata and 802.1X. I also build web applications (Django, Spring Boot, Angular) and practise offensive and ' +
-    'defensive security on Root-Me, where I have documented eleven write-ups.',
+    'Cybersecurity graduate passionate about network security, AI security, and building practical solutions to ' +
+    'real-world security challenges.',
   languages: [
     { name: 'French', level: 'Native' },
     { name: 'English', level: 'B2 (Duolingo English Test 110)' },
@@ -163,19 +163,17 @@ export const ROOTME = [
 export const rootmeLink = (file: string) => `${BLOB}/docs/ctf/rootme/${file}.md`;
 export const ROOTME_METHOD = 'Each write-up: objective → recon → steps → root cause (CWE) → mitigations → lessons learned. Flags are never published.';
 
+/**
+ * Skills without levels (owner's request, 22/11/2026). Security tools: the owner's list plus the tools actually used
+ * in the pfSense thesis (docs/projects/pfsense-umet-burkina: implementation and validation), not its "future work".
+ */
 export const SKILLS = {
-  security: ['pfSense', 'VLANs', 'Suricata IDS/IPS', 'SquidGuard', '802.1X / RADIUS', 'Burp Suite', 'ISO/IEC 27005 risk analysis'],
-  development: [
-    { name: 'HTML / CSS', level: 'Intermediate' },
-    { name: 'Python', level: 'Intermediate' },
-    { name: 'Git / GitHub', level: 'Intermediate' },
-    { name: 'Java', level: 'Beginner' },
-    { name: 'Spring Boot', level: 'Beginner' },
-    { name: 'Angular', level: 'Beginner' },
-    { name: 'Django', level: 'Beginner (learning)' },
+  security: [
+    'pfSense', 'Firewall policy & VLANs', 'Dual-WAN failover', 'Suricata IDS/IPS', 'Squid + SquidGuard', 'pfBlockerNG', 'SARG',
+    '802.1X / RADIUS (WPA-Enterprise)', 'RSTP & Port Security', 'VMware Workstation', 'Nmap', 'Burp Suite', 'ISO/IEC 27005 risk analysis',
   ],
+  development: ['Python', 'HTML / CSS', 'Git / GitHub', 'Java', 'Spring Boot', 'Angular', 'Django'],
 } as const;
-export const LEVEL_VALUE: Record<string, number> = { Intermediate: 2, Beginner: 1, 'Beginner (learning)': 1 };
 
 /** The pfSense thesis in depth (Research Institute + Recruiter Mode). */
 export const RESEARCH = {

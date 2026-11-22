@@ -45,6 +45,9 @@ interface Drag {
   vel: number;
 }
 
+/** The live engine (one stage per page), for the world pages that open from it. */
+export const visionaries: { engine: VisionariesEngine | null } = { engine: null };
+
 const h10 = (u: number) => u * u * u - 2 * u * u + u;
 const h01 = (u: number) => -2 * u * u * u + 3 * u * u;
 
@@ -81,6 +84,7 @@ export class VisionariesEngine {
   /** Focus inside the stage came from the keyboard (Tab), not from a mouse click on a chevron. */
   private focusByKeyboard = false;
   private lastPointerDown = -Infinity;
+  private lastKeyDown = -Infinity;
   private inView = true;
   private ticking = false;
   private loaded = new Set<number>();
@@ -91,6 +95,8 @@ export class VisionariesEngine {
   private bakeTimer = 0;
   private autoTimer = 0;
   private destroyed = false;
+  /** A world page covers the stage: no frame loop, no input, no auto-rotation. */
+  private suspended = false;
 
   constructor(root: HTMLElement, private readonly scenes: Scene[], private readonly cb: EngineCallbacks) {
     this.root = root;
@@ -120,6 +126,7 @@ export class VisionariesEngine {
     this.autoTimer = window.setInterval(() => this.autoTick(), VIS.AUTO_TICK);
     void this.ready().then(() => { if (!this.destroyed) this.enterStage(); });
     (window as unknown as { __vis?: VisionariesEngine }).__vis = this;
+    visionaries.engine = this;
   }
 
   destroy() {
@@ -134,6 +141,7 @@ export class VisionariesEngine {
     this.glass?.svg.remove();
     const w = window as unknown as { __vis?: VisionariesEngine };
     if (w.__vis === this) delete w.__vis;
+    if (visionaries.engine === this) visionaries.engine = null;
   }
 
   /** Waits for the first backdrop and the disc thumbnails (capped so a slow network never blocks the page). */
@@ -191,12 +199,35 @@ export class VisionariesEngine {
     this.rotateTo(base + wrapOff(i - base), this.velocity());
   }
 
+  /** Pauses everything while a world page covers the stage (and resumes, with a fresh idle timer). */
+  setSuspended(on: boolean) {
+    this.suspended = on;
+    this.root.classList.toggle('is-suspended', on);
+    this.setTicking(!on && this.inView && !document.hidden);
+    if (!on) { this.markInput(); this.render(performance.now()); }
+  }
+
+  /** Puts scene i at the top instantly (used while the stage is hidden behind a world page). */
+  jumpTo(i: number) {
+    this.tween = null;
+    const n = this.scenes.length;
+    this.pos = Math.round(this.pos) + wrapOff(i - Math.round(this.pos), n);
+    this.render(performance.now());
+  }
+
+  /** Centre and face radius of disc i at rest, in viewport pixels (the stage's own transform is ignored). */
+  discOrigin(i: number) {
+    const r = this.root.getBoundingClientRect();
+    const d = discState(i, Math.round(this.pos), this.L, 1, { off: 0, bx: 0, by: 0, topness: 0, scale: 0, lift: 0, z: 0, le: 0 });
+    return { x: r.left + r.width / 2 + d.bx, y: r.top + r.height / 2 + d.by - d.lift, r: (this.L.d0 * d.scale) * 0.34 };
+  }
+
   get state() {
     return {
       pos: +this.pos.toFixed(4), focal: this.focal, enter: +this.st.enter.toFixed(4), entranceDone: this.entranceDone,
       tweening: !!this.tween, dragging: !!this.drag, glass: this.glassMode, glassReason: this.glassReason,
       scales: this.glass?.scales ?? null, d0: this.L.d0, layout: { ...this.L }, inView: this.inView, ticking: this.ticking,
-      reduced: this.reduced, sinceInput: Number.isFinite(this.lastInput) ? Math.round(performance.now() - this.lastInput) : null,
+      suspended: this.suspended, reduced: this.reduced, sinceInput: Number.isFinite(this.lastInput) ? Math.round(performance.now() - this.lastInput) : null,
       entranceStart: this.entranceStart, now: performance.now(),
     };
   }
@@ -241,7 +272,7 @@ export class VisionariesEngine {
 
   private autoTick() {
     const now = performance.now();
-    if (!this.entranceDone || !this.inView || document.hidden || this.drag || this.reduced) return;
+    if (!this.entranceDone || !this.inView || document.hidden || this.drag || this.reduced || this.suspended) return;
     if (this.keyboardFocusInside()) return; // keyboard users read at their own pace
     if (now - this.lastInput < VIS.USER_IDLE || now - this.lastAdvance < VIS.AUTO_INTERVAL) return;
     this.lastAdvance = now;
@@ -367,7 +398,9 @@ export class VisionariesEngine {
     on(root, 'lostpointercapture', (e: PointerEvent) => this.onCancel(e));
     on(root, 'pointerenter', () => { this.hovered = true; });
     on(document, 'pointerdown', () => { this.lastPointerDown = performance.now(); }, { capture: true });
-    on(root, 'focusin', () => { this.focusByKeyboard = performance.now() - this.lastPointerDown > 150; });
+    on(document, 'keydown', () => { this.lastKeyDown = performance.now(); }, { capture: true });
+    // Keyboard focus = the reader's latest input was the keyboard (Tab, or Esc closing a world page).
+    on(root, 'focusin', () => { this.focusByKeyboard = this.lastKeyDown > this.lastPointerDown; });
     on(root, 'pointerleave', () => { this.hovered = false; });
     on(root, 'wheel', (e: WheelEvent) => this.onWheel(e), { passive: false });
     on(window, 'keydown', (e: KeyboardEvent) => this.onKey(e));
@@ -382,15 +415,15 @@ export class VisionariesEngine {
     const io = new IntersectionObserver(([entry]) => {
       this.inView = entry.isIntersecting;
       root.classList.toggle('is-offscreen', !this.inView);
-      this.setTicking(this.inView && !document.hidden);
+      this.setTicking(this.inView && !document.hidden && !this.suspended);
     }, { threshold: 0 });
     io.observe(root);
     this.cleanups.push(() => io.disconnect());
-    on(document, 'visibilitychange', () => this.setTicking(this.inView && !document.hidden));
+    on(document, 'visibilitychange', () => this.setTicking(this.inView && !document.hidden && !this.suspended));
   }
 
   private onDown(e: PointerEvent) {
-    if (e.button !== 0 || this.drag) return;
+    if (e.button !== 0 || this.drag || this.suspended) return;
     const target = e.target as Element;
     if (target.closest('.vis-chev, .vis-cta, .vis-scroll, a, button')) return;
     const med = target.closest<HTMLElement>('.vis-med');
@@ -454,6 +487,7 @@ export class VisionariesEngine {
    * rotate the ring; ordinary vertical scrolling is left to the page so the stage never traps it.
    */
   private onWheel(e: WheelEvent) {
+    if (this.suspended) return;
     const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
     if (!horizontal && !e.shiftKey) return;
     let dy = horizontal ? e.deltaX : e.deltaY || e.deltaX;
@@ -488,7 +522,7 @@ export class VisionariesEngine {
 
   /** ←/→ while the pointer is over the stage or keyboard focus is inside it; ↑/↓ only with keyboard focus inside. */
   private onKey(e: KeyboardEvent) {
-    if (e.altKey || e.ctrlKey || e.metaKey || e.defaultPrevented) return;
+    if (e.altKey || e.ctrlKey || e.metaKey || e.defaultPrevented || this.suspended) return;
     const t = e.target as HTMLElement | null;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
     const focused = this.keyboardFocusInside();
