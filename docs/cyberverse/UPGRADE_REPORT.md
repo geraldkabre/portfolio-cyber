@@ -182,3 +182,51 @@ Corrections faites au passage :
 | Démarche à 60, 30 et 20 images/s | **25 / 25** |
 
 Performance : 54,6 images/s (NEON FIGHTER +) et 50,5 (Cyber JT) sur la course scriptée, contre 67,9 à midi **pour le même code de démarche**. La machine était chargée pendant ces mesures : uTorrent tournait, avec une charge de 27 % au repos. Une mesure sur une machine au repos reste à faire.
+
+---
+
+## 8. Fluidité, photo, mode immersif et téléphone (22/11/2026, nuit)
+
+**Transitions plus rapides et fluides** (mesurées dans Edge, GPU Intel UHD) :
+
+| Transition | Avant | Après |
+|---|---|---|
+| Plongée dans un monde | 1,9 s avec un plateau « slow-mo » ; 17 images par seconde, pics à 140 ms | ≈ 1 s en courbe douce, 64 images, p95 20 ms |
+| Changement de monde | p95 42 ms, pics à 104 ms | p95 21 ms, pire 35 ms |
+| Fermeture | 1,05 s | 0,7 s, ≈ 7 ms par image |
+| Pas de l'anneau | 1,0 s, avec un temps mort au départ (expo) | 0,75 s, démarre dès la 1re image (ease-out) |
+
+Causes trouvées à la trace de performance et corrigées :
+1. Les 9 disques en verre réfractant étaient recalculés à chaque image, même sous la transition. L'anneau est maintenant figé, sans verre, pendant les transitions, puis masqué une fois couvert.
+2. Le cercle découpait toute la page (`clip-path`), ce qui forçait à redessiner textes, ombres et masques à chaque image. Il est remplacé par une lentille ronde : un cercle agrandi par simple transformation, que le GPU anime sans redessiner.
+3. Le contenu masqué par `visibility` n'était dessiné qu'au moment d'apparaître, d'où des pics au milieu de l'animation. Il est maintenant gardé à une opacité de 0,01, préparé à l'avance.
+4. Coûts de premier usage :
+   - police : Geist est maintenant hébergée avec le site, au lieu de Google Fonts qui pouvait bloquer le chargement de la page ;
+   - effets GPU : ils sont compilés pendant l'écran noir de l'arrivée.
+5. Chaque animation démarre quand le navigateur rend de nouveau des images régulières (au plus 0,3 s d'attente).
+6. Coût du verre : seuls les 3 disques du haut gardent la lentille complète avec franges colorées ; les 6 autres ont une lentille en une passe.
+
+**Photo de profil** : recadrée pour un cercle, à partir de l'original (resté intact dans `assets-source/`) : visage centré, marge au-dessus de la tête, épaules en bas, sans le bord gris de la capture.
+
+**Mode immersif = mêmes textes** :
+- les terminaux des districts ouvrent les mêmes résumés que les mondes du mode recruteur : même police, mêmes compteurs, mêmes boutons GitHub ;
+- ils s'affichent en panneau latéral sur ordinateur, en plein écran sur téléphone, avec des onglets quand un district présente deux parties (Formation / Langues, Projets / Expérience, Certifications / Root-Me) ;
+- la typographie Geist est utilisée partout, y compris pour les textes holographiques en 3D ;
+- l'accueil reprend la description courte.
+
+**Téléphone** :
+- balayage gauche / droite entre les mondes ;
+- boutons d'au moins 44 px ;
+- panneaux 3D en plein écran ;
+- l'accueil défile correctement sur les petits écrans ;
+- il n'y a aucun débordement horizontal.
+
+**Vérifications** (version de production) :
+
+| Suite | Résultat |
+|---|---|
+| Mondes | 24 / 24 |
+| Visionaries | 51 / 51 |
+| Interface | 17 / 17 |
+| Parcours 3D, NEON FIGHTER + et Cyber JT | 32 / 32 chacun (61,5 et 60,5 images/s) |
+| Tactile | 7 / 7 |

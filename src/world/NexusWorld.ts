@@ -12,7 +12,7 @@ import { createProps } from './props';
 import { createLighting } from './lighting';
 import { createAmbience } from './ambience';
 import { batchStatic } from './batch';
-import { FX_TIME } from './fx';
+import { FX_TIME, displayFontsReady } from './fx';
 import { LAYOUT } from './layout';
 import { SITES } from './campus';
 import type { PanelKey } from '../content/profile';
@@ -65,6 +65,7 @@ export class NexusWorld {
       Kit.load('cyberkit', this.materials, (p) => { cp = p; report(); }),
     ]);
     await this.materials.ready();
+    await displayFontsReady();
     onProgress(1, 'Environment');
 
     this.lighting = createLighting(renderer, scene, engine.quality.shadowMapSize);

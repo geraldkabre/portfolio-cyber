@@ -9,7 +9,7 @@
 import gsap from 'gsap';
 import { GlassFilter, detectGlassMode, type GlassMode } from './glass';
 import {
-  VIS, backdropOpacity, clamp, discState, easeInOutExpo, focalIndex, layout, smoothstep, wobble, wrapOff,
+  VIS, backdropOpacity, clamp, discState, easeInOutCubic, easeOutCubic, focalIndex, layout, smoothstep, wobble, wrapOff,
   type DiscState, type RingLayout,
 } from './geometry';
 import type { Scene } from './scenes';
@@ -28,8 +28,8 @@ interface Tween {
   to: number;
   start: number;
   dur: number;
-  /** 'expo' from rest (§11); 'hermite' keeps the current velocity when a rotation is re-targeted or flicked. */
-  kind: 'expo' | 'hermite';
+  /** 'step' (reader) and 'auto' start from rest; 'hermite' keeps the current velocity (re-target, flick). */
+  kind: 'step' | 'auto' | 'hermite';
   v0: number;
 }
 
@@ -73,7 +73,7 @@ export class VisionariesEngine {
   private readonly glow: HTMLElement;
   private readonly glass: GlassFilter | null;
   private readonly reduced: boolean;
-  private readonly cache = { t: [] as string[], o: [] as string[], f: [] as string[], r: [] as string[], z: [] as string[], v: [] as string[], bg: [] as string[], glow: '' };
+  private readonly cache = { t: [] as string[], o: [] as string[], f: [] as string[], r: [] as string[], z: [] as string[], v: [] as string[], bg: [] as string[], lens: [] as string[], glow: '' };
   private readonly ds: DiscState = { off: 0, bx: 0, by: 0, topness: 0, scale: 0, lift: 0, z: 0, le: 0 };
   private tween: Tween | null = null;
   private drag: Drag | null = null;
@@ -189,7 +189,7 @@ export class VisionariesEngine {
   step(dir: number, byUser = true) {
     if (byUser) this.markInput();
     const base = this.tween ? this.tween.to : Math.round(this.pos);
-    this.rotateTo(base + Math.sign(dir), this.velocity());
+    this.rotateTo(base + Math.sign(dir), this.velocity(), !byUser);
   }
 
   /** Brings scene i to the top the shortest way round. */
@@ -247,16 +247,17 @@ export class VisionariesEngine {
 
   private posAt(t: Tween, now: number) {
     const u = clamp((now - t.start) / (t.dur * 1000), 0, 1);
-    if (t.kind === 'expo') return t.from + (t.to - t.from) * easeInOutExpo(u);
+    if (t.kind === 'step') return t.from + (t.to - t.from) * easeOutCubic(u);
+    if (t.kind === 'auto') return t.from + (t.to - t.from) * easeInOutCubic(u);
     return t.from + t.v0 * t.dur * h10(u) + (t.to - t.from) * h01(u);
   }
 
   /**
-   * §11: tweens `pos` to `target` over STEP_DUR with easeInOutExpo. When the ring is already moving towards the
+   * Tweens `pos` to `target`: a reader step eases out over STEP_DUR (moves at once), an automatic step eases in-out over AUTO_STEP_DUR. When the ring is already moving towards the
    * target (re-targeted rotation, flick release), a velocity-matched cubic Hermite continues the motion instead of
    * freezing it, with its duration capped so it never overshoots.
    */
-  private rotateTo(target: number, v0 = 0) {
+  private rotateTo(target: number, v0 = 0, auto = false) {
     const delta = target - this.pos;
     if (Math.abs(delta) < 1e-4) { this.pos = target; this.tween = null; return; }
     if (this.reduced) { this.pos = target; this.tween = null; return; }
@@ -266,7 +267,9 @@ export class VisionariesEngine {
       const v = Math.sign(v0) * Math.min(Math.abs(v0), (2.9 * Math.abs(delta)) / dur);
       this.tween = { from: this.pos, to: target, start: now, dur, kind: 'hermite', v0: v };
     } else {
-      this.tween = { from: this.pos, to: target, start: now, dur: VIS.STEP_DUR, kind: 'expo', v0: 0 };
+      this.tween = auto
+        ? { from: this.pos, to: target, start: now, dur: VIS.AUTO_STEP_DUR, kind: 'auto', v0: 0 }
+        : { from: this.pos, to: target, start: now, dur: VIS.STEP_DUR, kind: 'step', v0: 0 };
     }
   }
 
@@ -312,6 +315,9 @@ export class VisionariesEngine {
       if (f !== c.f[i]) { this.imgs[i].style.filter = f; c.f[i] = f; }
       const rim = (0.42 + 0.4 * d.topness).toFixed(3);
       if (rim !== c.r[i]) { this.rims[i].style.opacity = rim; c.r[i] = rim; }
+      // Full chromatic lens for the three discs around the top, the lite lens for the others.
+      const full = Math.abs(d.off) < 1.5 ? 'full' : 'lite';
+      if (full !== c.lens[i]) { this.meds[i].classList.toggle('is-lens-full', full === 'full'); c.lens[i] = full; }
       const bo = backdropOpacity(d.off).toFixed(3);
       if (bo !== c.bg[i]) {
         // Fully transparent layers are hidden so the browser neither paints nor composites them.

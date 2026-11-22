@@ -130,18 +130,19 @@ try {
     const tr = await record(page, 1150, `document.querySelector('.vis-chev-right').click()`);
     // Compare every rendered frame with the curve, on the tween's own clock.
     const start = tr.find((s) => s[4] !== null)?.[4];
-    const expo = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t < 0.5 ? 2 ** (20 * t - 10) / 2 : (2 - 2 ** (-20 * t + 10)) / 2);
-    const errs = tr.filter((s) => start && s[3] >= start).map((s) => Math.abs(s[1] - p0 - expo((s[3] - start) / 1000)));
+    const ease = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3)); // responsive step, 0.75 s
+    const errs = tr.filter((s) => start && s[3] >= start).map((s) => Math.abs(s[1] - p0 - ease((s[3] - start) / 750)));
     errs.splice(0, errs.length, Math.max(...errs), errs.reduce((a, b) => a + b, 0) / errs.length);
-    check('rotation: one slot in 1.0 s following easeInOutExpo', near(tr[tr.length - 1][1] - p0, 1, 1e-6) && errs[0] < 0.01, `max error ${errs[0].toFixed(4)}, mean ${errs[1].toFixed(4)} slot`);
+    const moved = tr.find((s) => start && s[3] >= start + 30);
+    check('rotation: one slot in 0.75 s, moving from the first frame and landing softly (ease-out)', near(tr[tr.length - 1][1] - p0, 1, 1e-6) && errs[0] < 0.01 && moved && moved[1] - p0 > 0.05, `max error ${errs[0].toFixed(4)}, mean ${errs[1].toFixed(4)} slot, +${moved ? (moved[1] - p0).toFixed(3) : '?'} after 30 ms`);
     const mono = tr.every((s, i) => i === 0 || s[1] >= tr[i - 1][1] - 1e-9);
     check('rotation: monotonic, no jitter', mono);
     const flip = tr.find((s) => s[2] !== tr[0][2]);
-    check('rotation: focal index flips at the half-way mark', flip && near(flip[0], 500, 60), `flip at ${flip?.[0].toFixed(0)} ms`);
+    check('rotation: focal index flips at the half-way mark (≈ 155 ms with the ease-out)', flip && near(flip[0], 155, 50), `flip at ${flip?.[0].toFixed(0)} ms`);
     await page.click('.vis-chev-left');
-    await sleep(500);
+    await sleep(140); // mid-way through the 0.75 s ease-out step
     const fade = await page.evaluate(() => [...document.querySelectorAll('.vis-bg')].map((b) => Number(b.style.opacity)).filter((o) => o > 0));
-    check('backdrop cross-fades (two layers ≈ 1 mid-way, no dark dip)', fade.length === 2 && fade.reduce((a, b) => a + b, 0) > 0.95, fade.map((v) => v.toFixed(2)).join(' + '));
+    check('backdrop cross-fades (layers sum to ≈ 1 mid-way, no dark dip)', fade.length >= 2 && fade.reduce((a, b) => a + b, 0) > 0.95, fade.map((v) => v.toFixed(2)).join(' + '));
     await waitSettled(page);
     const title = await page.evaluate(() => { const h = document.querySelector('.vis-title-name'); return { text: h.textContent, anim: getComputedStyle(h).animationName, sub: getComputedStyle(document.querySelector('.vis-title-sub')).animationName }; });
     check('title and caption replay on each scene change', title.anim === 'vis-rise' && title.sub === 'vis-fade', JSON.stringify(title));
@@ -149,7 +150,7 @@ try {
     // Rapid inputs accumulate smoothly (velocity-continuous re-targeting).
     await hold(page);
     const r0 = (await vis(page)).pos;
-    const rapid = await record(page, 1900, `const b=document.querySelector('.vis-chev-right'); b.click(); setTimeout(()=>b.click(),120); setTimeout(()=>b.click(),240);`);
+    const rapid = await record(page, 1500, `const b=document.querySelector('.vis-chev-right'); b.click(); setTimeout(()=>b.click(),120); setTimeout(()=>b.click(),240);`);
     const rmono = rapid.every((s, i) => i === 0 || s[1] >= rapid[i - 1][1] - 1e-9);
     const maxJump = Math.max(...rapid.slice(1).map((s, i) => s[1] - rapid[i][1]));
     check('rapid triple click: +3 slots, monotonic, no jumps', near(rapid[rapid.length - 1][1] - r0, 3, 1e-6) && rmono && maxJump < 0.35, `end ${(rapid[rapid.length - 1][1] - r0).toFixed(3)} max/frame ${maxJump.toFixed(3)}`);

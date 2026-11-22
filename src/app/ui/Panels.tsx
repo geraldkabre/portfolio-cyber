@@ -1,61 +1,96 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { bridge } from '../bridge';
 import { useUI, type PanelId } from '../store';
-import { DISTRICTS, GITHUB } from '../../content/profile';
-import {
-  CertificatesSection, ContactSection, EducationSection, ExperienceSection, LanguagesSection, Lightbox, ProfileSection,
-  ProjectsSection, ResearchSection, RootMeSection, SkillsSection, type Zoom,
-} from '../../content/Sections';
+import { DISTRICTS } from '../../content/profile';
+import { WORLDS, worldIndex } from '../../content/worlds';
+import { WorldContent, revealContent, whenSmooth } from '../../content/WorldContent';
 import { SITES, siteXZ } from '../../world/campus';
+import { prefersReducedMotion } from '../../engine/quality';
 
-const TITLES: Record<Exclude<PanelId, null>, [string, string]> = {
-  profile: ['MAIN COMMAND CENTER · OPERATOR DOSSIER', 'Profile'],
-  academy: ['IDENTITY & ACADEMY DISTRICT', 'Education & languages'],
-  soc: ['SECURITY OPERATIONS CENTER', 'Skills'],
-  missions: ['PROJECT MISSION ROOM', 'Projects & experience'],
-  research: ['RESEARCH INSTITUTE', 'pfSense thesis'],
-  vault: ['DIGITAL PROOF VAULT', 'Certifications & Root-Me'],
-  comms: ['COMMUNICATION TOWER', 'Contact'],
-  map: ['SENTINEL NEXUS', 'Campus map'],
-  help: ['FIELD MANUAL', 'Controls'],
+/** District terminal → the Recruiter Mode worlds it presents (same words, same typography in both modes). */
+const DISTRICT_WORLDS: Partial<Record<Exclude<PanelId, null>, string[]>> = {
+  profile: ['profile'],
+  academy: ['education', 'languages'],
+  soc: ['skills'],
+  missions: ['projects', 'experience'],
+  research: ['projects'],
+  vault: ['certifications', 'rootme'],
+  comms: ['contact'],
 };
+
+const KICKERS: Record<Exclude<PanelId, null>, string> = {
+  profile: 'Main Command Center · operator dossier',
+  academy: 'Identity & Academy District',
+  soc: 'Security Operations Center',
+  missions: 'Project Mission Room',
+  research: 'Research Institute',
+  vault: 'Digital Proof Vault',
+  comms: 'Communication Tower',
+  map: 'Sentinel Nexus',
+  help: 'Field manual',
+};
+const TITLES: Partial<Record<Exclude<PanelId, null>, string>> = { map: 'Campus map', help: 'Controls' };
 
 export function Panels() {
   const panel = useUI((s) => s.panel);
-  const [zoom, setZoom] = useState<{ src: string; alt: string } | null>(null);
   if (!panel) return null;
-  const [kicker, title] = TITLES[panel];
+  const worlds = DISTRICT_WORLDS[panel];
   return (
-    <div className="cv-panel-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) bridge.game?.closePanel(); }}>
-      <PanelShell kicker={kicker} title={title} wide={panel !== 'help'}>
-        <PanelBody panel={panel} onZoom={setZoom} />
-      </PanelShell>
-      <Lightbox item={zoom} onClose={() => setZoom(null)} />
+    <div className={`cv-panel-backdrop${worlds ? ' is-world' : ''}`} onMouseDown={(e) => { if (e.target === e.currentTarget) bridge.game?.closePanel(); }}>
+      {worlds
+        ? <WorldPanel key={panel} kicker={KICKERS[panel]} ids={worlds} />
+        : <PanelShell kicker={KICKERS[panel]} title={TITLES[panel] ?? ''} wide={panel !== 'help'}>{panel === 'map' ? <CampusMap /> : <Help />}</PanelShell>}
     </div>
   );
 }
 
-function PanelBody({ panel, onZoom }: { panel: Exclude<PanelId, null>; onZoom: Zoom }) {
-  switch (panel) {
-    case 'profile':
-      return (
-        <>
-          <ProfileSection heading={false} />
-          <p className="sec-actions">
-            <button type="button" className="cv-inline-btn" onClick={() => bridge.game?.openPanel('map')}>Open the campus map (M)</button>
-            <a href="/recruiter/">Recruiter Mode (one page)</a>
-          </p>
-        </>
-      );
-    case 'academy': return <><EducationSection /><LanguagesSection /></>;
-    case 'soc': return <SkillsSection />;
-    case 'missions': return <><ProjectsSection /><ExperienceSection /></>;
-    case 'research': return <ResearchSection onZoom={onZoom} />;
-    case 'vault': return <><CertificatesSection onZoom={onZoom} /><RootMeSection /></>;
-    case 'comms': return <><ContactSection /><p className="sec-actions"><a href="/recruiter/">Recruiter Mode — the whole portfolio on one page</a><a href={GITHUB.repository} target="_blank" rel="noreferrer">Portfolio repository ↗</a></p></>;
-    case 'map': return <CampusMap />;
-    case 'help': return <Help />;
-  }
+/**
+ * A district terminal opens the same summaries as Recruiter Mode's worlds (side sheet on a computer, full screen
+ * on a phone), with the same motion-design reveal; districts presenting two worlds get a tab switch.
+ */
+function WorldPanel({ kicker, ids }: { kicker: string; ids: string[] }) {
+  const [tab, setTab] = useState(0);
+  const sheet = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const world = WORLDS[worldIndex(ids[tab])];
+  useEffect(() => { sheet.current?.focus({ preventScroll: true }); }, []);
+  useLayoutEffect(() => {
+    if (prefersReducedMotion() || !body.current) return;
+    sheet.current?.scrollTo({ top: 0 });
+    const tl = revealContent(body.current, 0.05, 1, 1.15).pause();
+    tl.progress(0.0001).progress(0);
+    const cancel = whenSmooth(() => tl.play(), 250);
+    return () => { cancel(); tl.kill(); };
+  }, [tab]);
+  return (
+    <div className="cv-panel is-world" role="dialog" aria-modal="true" aria-labelledby="cv-world-title" tabIndex={-1} ref={sheet}
+      style={{ ['--w-accent' as string]: world.accent }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') bridge.game?.closePanel();
+        if (ids.length > 1 && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) setTab((t) => (t + 1) % ids.length);
+      }}>
+      <div className="cv-world-head">
+        <p className="cv-kicker">{kicker}</p>
+        <button type="button" className="cv-icon-btn" onClick={() => bridge.game?.closePanel()} aria-label="Close">×</button>
+      </div>
+      {ids.length > 1 && (
+        <div className="cv-world-tabs" role="tablist" aria-label="Parts presented here">
+          {ids.map((id, i) => (
+            <button key={id} type="button" role="tab" aria-selected={i === tab} className={i === tab ? 'is-on' : ''} onClick={() => setTab(i)}>
+              {WORLDS[worldIndex(id)].title}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="cv-world-body" key={world.id} ref={body}>
+        <WorldContent world={world} level={2} headingId="cv-world-title" />
+      </div>
+      <p className="cv-world-foot">
+        <button type="button" className="cv-inline-btn" onClick={() => bridge.game?.openPanel('map')}>Campus map (M)</button>
+        <a href={`/recruiter/#/${world.id}`}>Open in Recruiter Mode</a>
+      </p>
+    </div>
+  );
 }
 
 function PanelShell({ kicker, title, wide, children }: { kicker: string; title: string; wide: boolean; children: ReactNode }) {
@@ -157,6 +192,7 @@ function Help() {
         <li><span><kbd>E</kbd></span><span>Interact with a terminal</span></li>
         <li><span><kbd>M</kbd></span><span>Campus map and fast travel</span></li>
         <li><span><kbd>F3</kbd></span><span>Performance overlay</span></li>
+        <li><span>Phone / tablet</span><span>Left stick to move (light push = walk), drag on the right to look, E / jump / sprint buttons</span></li>
       </ul>
       <h3>Credits</h3>
       <p className="cv-muted">

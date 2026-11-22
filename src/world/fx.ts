@@ -213,6 +213,16 @@ export function particleMaterial(size = 0.12, pixelRatio = 1) {
   });
 }
 
+/**
+ * Waits (briefly) for the display typeface used by the holographic texts — the same Geist as Recruiter Mode — so
+ * the canvas textures are drawn with it and not with a fallback. Never blocks the load for long.
+ */
+export async function displayFontsReady(timeout = 2500) {
+  if (typeof document === 'undefined' || !document.fonts) return;
+  const load = Promise.all(['500', '600', '700', '800'].map((w) => document.fonts.load(`${w} 48px "Geist Variable"`).catch(() => [])));
+  await Promise.race([load, new Promise((r) => setTimeout(r, timeout))]);
+}
+
 /** Canvas-based text texture for holographic signs and panels. */
 export function textTexture(lines: { text: string; size: number; color?: string; weight?: number; spacing?: number; font?: string }[], opts: {
   width?: number; height?: number; align?: CanvasTextAlign; padding?: number; background?: string;
@@ -230,7 +240,7 @@ export function textTexture(lines: { text: string; size: number; color?: string;
   const x = opts.align === 'left' ? (opts.padding ?? 40) : w / 2;
   for (const l of lines) {
     y += l.size * 0.675;
-    ctx.font = `${l.weight ?? 600} ${l.size}px ${l.font ?? '"Segoe UI", "Inter", system-ui, sans-serif'}`;
+    ctx.font = `${l.weight ?? 600} ${l.size}px ${l.font ?? '"Geist Variable", "Geist", "Segoe UI", "Inter", system-ui, sans-serif'}`;
     (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = `${l.spacing ?? 0}px`;
     ctx.fillStyle = l.color ?? '#ffffff';
     ctx.shadowColor = l.color ?? '#ffffff';

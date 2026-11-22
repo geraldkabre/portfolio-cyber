@@ -205,3 +205,48 @@ a { color: var(--cyan); }
 .cv-tbtn { width: 58px; height: 58px; border-radius: 50%; border: 1px solid var(--line); background: rgba(9, 16, 34, 0.75); color: var(--ice); font: 700 1.1rem var(--mono); touch-action: manipulation; }
 .cv-tbtn.is-ready { border-color: var(--cyan); background: rgba(0, 229, 255, 0.22); box-shadow: 0 0 16px rgba(0, 229, 255, 0.4); }
 .phase-play .cv-prompt { bottom: 30%; }
+
+/* ---------- district panels = the Recruiter Mode worlds (same words, same typography) */
+.cv-panel-backdrop.is-world { place-items: stretch end; padding: 0; background: linear-gradient(90deg, rgba(3, 6, 14, 0) 25%, rgba(3, 6, 14, 0.6)); backdrop-filter: none; }
+.cv-panel.is-world {
+  width: min(660px, 100%); height: 100%; max-height: none; border: 0; border-left: 1px solid rgba(0, 229, 255, 0.22); border-radius: 0;
+  padding: 0 clamp(18px, 3vw, 40px) 28px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  background: linear-gradient(180deg, rgba(5, 8, 18, 0.95), rgba(3, 5, 12, 0.97)); color: #e9f2ff; font-family: var(--w-display);
+  animation: cv-sheet-in 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes cv-sheet-in { from { opacity: 0; transform: translateX(48px); } }
+.cv-world-head {
+  position: sticky; top: 0; z-index: 3; display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  padding: 16px 0 10px; background: linear-gradient(180deg, rgba(5, 8, 18, 0.98) 60%, rgba(5, 8, 18, 0));
+}
+.cv-world-head .cv-kicker { margin: 0; }
+.cv-world-tabs { display: flex; gap: 6px; margin: 2px 0 6px; }
+.cv-world-tabs button {
+  padding: 0.55em 1em; min-height: 40px; border-radius: 999px; border: 1px solid rgba(120, 210, 255, 0.24); background: rgba(9, 16, 34, 0.6);
+  color: rgba(233, 242, 255, 0.75); font: 600 13px/1 var(--w-display); cursor: pointer; transition: background 0.25s, color 0.25s, border-color 0.25s;
+}
+.cv-world-tabs button.is-on { background: #00e5ff; border-color: #00e5ff; color: #03121a; }
+.cv-world-body { position: relative; overflow: clip; }
+.cv-world-body .w-stage { height: clamp(170px, 28vh, 270px); }
+.cv-world-body .w-visual { width: clamp(140px, 22vh, 220px); }
+.cv-world-body .w-word { font-size: clamp(90px, 13vw, 190px); }
+.cv-world-body .w-pool { height: 60px; }
+.cv-world-body .w-headline { font-size: clamp(36px, 4.2vw, 62px); }
+.cv-world-body .w-num { font-size: clamp(46px, 5.4vw, 84px); }
+.cv-world-body .w-item { flex-wrap: wrap; row-gap: 0.2rem; }
+.cv-world-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 26px 0 0; font-size: 13px; }
+.cv-world-foot a { color: rgba(233, 242, 255, 0.75); }
+@media (max-width: 720px) {
+  .cv-panel-backdrop.is-world { background: none; }
+  .cv-panel.is-world { width: 100%; border-left: 0; padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+  .cv-world-body .w-headline { font-size: clamp(34px, 10vw, 48px); }
+  .cv-world-body .w-num { font-size: clamp(44px, 13vw, 64px); }
+}
+
+/* ---------- gateway in the motion-design typography */
+.cv-gateway .cv-gateway-role { max-width: 40em; margin-inline: auto; color: rgba(233, 242, 255, 0.78); font-size: clamp(0.95rem, 1.4vw, 1.1rem); line-height: 1.5; }
+.cv-gateway-place { white-space: nowrap; color: var(--text-dim); }
+.cv-mode strong { font-weight: 700; letter-spacing: -0.03em; font-size: clamp(1.25rem, 2vw, 1.6rem); line-height: 1.05; }
+/* Taller than a small phone: start at the top and scroll (auto margins centre it whenever it fits). */
+.cv-gateway { place-items: start center; }
+.cv-gateway-inner { margin-block: auto; }

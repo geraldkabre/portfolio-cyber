@@ -4,8 +4,8 @@
  */
 import {
   CERTIFICATES, EDUCATION, EXPERIENCE, GITHUB, PROFILE, PROJECTS, ROOTME, SKILLS, certificateImage, certificateOnGitHub,
-} from '../../content/profile';
-import { SCENES } from '../visionaries/scenes';
+} from './profile';
+import { SCENES } from '../recruiter/visionaries/scenes';
 
 export interface WorldStat { value: number; label: string; suffix?: string }
 export interface WorldItem { label: string; meta?: string; href?: string; status?: 'completed' | 'in-progress' }

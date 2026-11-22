@@ -12,7 +12,7 @@
   --vis-ink-soft: rgba(243, 236, 224, 0.6);
   --vis-chrome: rgba(243, 236, 224, 0.5);
   --vis-vignette: radial-gradient(125% 100% at 50% 44%, transparent 32%, rgba(7, 5, 4, 0.5) 72%, rgba(5, 4, 3, 0.9) 100%);
-  --vis-sans: "Geist", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --vis-sans: "Geist Variable", "Geist", "Segoe UI", system-ui, -apple-system, sans-serif;
   position: relative;
   height: 100vh;
   width: 100%;
@@ -63,7 +63,8 @@
 }
 .vis-root.is-dragging .vis-med { cursor: grabbing; }
 /* Live refraction (Chromium) — the shared Snell's-law displacement filter. */
-.is-glass-native .vis-med { backdrop-filter: url(#vis-glass) blur(0.4px) saturate(1.16) brightness(0.97); }
+.is-glass-native .vis-med { backdrop-filter: url(#vis-glass-lite) saturate(1.16) brightness(0.97); }
+.is-glass-native .vis-med.is-lens-full { backdrop-filter: url(#vis-glass) blur(0.4px) saturate(1.16) brightness(0.97); }
 /* Frosted fallback (Safari, Firefox, weak GPUs): rim, specular and shadow still render. */
 .is-glass-frost .vis-med { -webkit-backdrop-filter: blur(3px) saturate(1.12) brightness(0.95); backdrop-filter: blur(3px) saturate(1.12) brightness(0.95); }
 /* No GPU lens work while the stage is off screen. */
@@ -145,6 +146,11 @@
 .vis-sr a { color: var(--vis-ink); font: 500 13px/1.8 var(--vis-sans); }
 /* A world page covers the stage: the stage stops taking input. */
 .vis-root.is-suspended { pointer-events: none; }
+/* Frozen ring (a world page opens over it): no Ken Burns drift and no live glass — the dimmed discs would
+   otherwise be re-filtered on every frame of the transition. Covered entirely: not drawn at all. */
+.vis-root.is-suspended .vis-bg { animation-play-state: paused; }
+.vis-root.is-suspended .vis-med { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.vis-root.is-covered { visibility: hidden; }
 
 /* ---------- phones (shorter side < 640 px, set by the engine) */
 .vis-root.is-phone .vis-chev { display: none; }

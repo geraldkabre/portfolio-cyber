@@ -28,7 +28,10 @@ export const VIS = {
   ENTER_BG_DUR: 2.0,
   ENTER_DUR: 2.7,
   ENTER_SPIN: 2.4,
-  STEP_DUR: 1.0,
+  /** A step asked by the reader (owner feedback: the 1.0 s expo of the spec felt slow, with a dead start). */
+  STEP_DUR: 0.75,
+  /** An automatic step (calm in-out). */
+  AUTO_STEP_DUR: 1.0,
   KENBURNS: 34,
   // interaction
   DRAG_PER_STEP: 260,
@@ -50,7 +53,12 @@ export function wrapOff(d: number, n: number = VIS.N) {
   return o;
 }
 
-/** §11: holds, punches through the middle, holds. */
+/** Responsive step: moves on the first frame, lands softly (no dead start). */
+export const easeOutCubic = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3));
+/** Calm automatic step: gentle start and landing. */
+export const easeInOutCubic = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+/** §11 (original spec): holds, punches through the middle, holds. Kept for reference. */
 export function easeInOutExpo(t: number) {
   if (t <= 0) return 0;
   if (t >= 1) return 1;

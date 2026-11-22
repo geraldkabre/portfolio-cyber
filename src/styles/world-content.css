@@ -1,0 +1,89 @@
+/* World summaries (src/content/WorldContent.tsx) — shared by Recruiter Mode and the 3D campus panels.
+   Motion-design typography: Geist, bold and tight for display, giant numbers, a giant word behind the visual,
+   a pool of light beneath it — in the CYBERVERSE palette. Layout (page or panel) is set by the container. */
+.w-stage { position: relative; display: grid; place-items: center; }
+.w-copy { position: relative; z-index: 2; min-width: 0; }
+
+/* Giant word behind the visual (decorative), lit from the right like a reflection of the scene. */
+.w-word {
+  position: absolute; left: 50%; top: 50%; translate: -50% -58%; margin: 0; white-space: nowrap; pointer-events: none;
+  font: 800 clamp(96px, 19vw, 320px)/0.8 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); letter-spacing: -0.065em;
+  background: linear-gradient(100deg, rgba(47, 123, 255, 0.06) 0%, rgba(47, 123, 255, 0.2) 35%, #00e5ff 62%, #8b5cff 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  will-change: transform, opacity;
+}
+.w-visual {
+  position: relative; z-index: 1; width: clamp(220px, 32vw, 500px); aspect-ratio: 1; border-radius: 50%; overflow: hidden;
+  box-shadow: 0 26px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 36px color-mix(in srgb, var(--w-accent, #7cadbb) 30%, transparent);
+  animation: w-float 7s ease-in-out infinite; will-change: transform, opacity;
+}
+.w-visual img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.15); }
+/* The portrait is already framed for a circle (public/assets/profile/photo.jpg): no extra zoom. */
+.w-visual.is-photo img { transform: none; object-position: 50% 50%; }
+.w-rim {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 50% 6%, rgba(255, 255, 255, 0.3), transparent 38%), radial-gradient(circle at 72% 82%, rgba(160, 230, 255, 0.14), transparent 32%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.16), inset 0 -14px 30px rgba(0, 0, 0, 0.35);
+}
+.w-visual.is-photo .w-rim { background: radial-gradient(circle at 50% 6%, rgba(255, 255, 255, 0.14), transparent 34%); }
+.w-pool {
+  position: absolute; left: 50%; bottom: 2%; width: min(560px, 80%); height: 90px; translate: -50% 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--w-accent, #7cadbb) 70%, #00e5ff), transparent);
+  filter: blur(26px); opacity: 0.55; animation: w-breathe 7s ease-in-out infinite;
+}
+@keyframes w-float { 0%, 100% { translate: 0 -6px; } 50% { translate: 0 8px; } }
+@keyframes w-breathe { 0%, 100% { opacity: 0.45; scale: 0.94 1; } 50% { opacity: 0.65; scale: 1.04 1; } }
+
+/* ---------- typography */
+.w-headline {
+  margin: 0 0 0.35em; font: 700 clamp(44px, 6.2vw, 104px)/0.95 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); letter-spacing: -0.045em; color: #f4f8ff;
+}
+.w-headline:focus, .w-headline:focus-visible { outline: none; } /* focus target only (tabIndex -1) */
+.w-line { display: block; }
+.w-line + .w-line { color: rgba(244, 248, 255, 0.58); }
+.w-lead { margin: 0; max-width: 34em; font: 400 clamp(15px, 1.25vw, 18px)/1.55 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); color: rgba(233, 242, 255, 0.82); }
+.w-meta { margin: 0.6em 0 0; font: 500 12px/1.4 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); letter-spacing: 0.16em; text-transform: uppercase; color: rgba(233, 242, 255, 0.5); }
+
+.w-stats { display: flex; flex-wrap: wrap; gap: clamp(18px, 3vw, 44px); margin: clamp(22px, 4vh, 40px) 0 0; }
+.w-stat { display: flex; flex-direction: column-reverse; min-width: 0; }
+.w-stat dt { max-width: 13em; font: 500 13px/1.35 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); color: rgba(233, 242, 255, 0.6); }
+.w-num {
+  margin: 0 0 0.05em; font: 800 clamp(56px, 7.5vw, 124px)/0.9 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); letter-spacing: -0.055em; font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #ffffff 30%, #9fdcff 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+.w-items { list-style: none; margin: clamp(20px, 3.5vh, 34px) 0 0; padding: 0; display: grid; gap: 2px; max-width: 560px; }
+.w-item {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: 0.7rem 0;
+  border-bottom: 1px solid rgba(120, 210, 255, 0.16); font: 500 15px/1.35 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif);
+}
+.w-item a, .w-item strong { color: #f4f8ff; text-decoration: none; font-weight: 600; transition: color 0.25s; }
+.w-item a:hover { color: #00e5ff; }
+.w-dim { color: rgba(233, 242, 255, 0.55); font-size: 13px; text-align: right; }
+.w-status { flex: none; font: 600 11px/1 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); letter-spacing: 0.12em; text-transform: uppercase; padding: 0.45em 0.7em; border-radius: 999px; }
+.w-status.completed { background: #00e5ff; color: #04121a; }
+.w-status.in-progress { border: 1px solid rgba(139, 92, 255, 0.7); color: #e9f2ff; background: rgba(139, 92, 255, 0.2); }
+
+.w-chips { margin: clamp(18px, 3vh, 28px) 0 0; }
+.w-chips-title { margin: 0 0 0.6em; font: 600 11px/1 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); letter-spacing: 0.22em; text-transform: uppercase; color: #00e5ff; }
+.w-chip-list { display: flex; flex-wrap: wrap; gap: 7px; margin: 0; }
+.w-chip-list span { padding: 0.42em 0.8em; border-radius: 999px; border: 1px solid rgba(120, 210, 255, 0.24); background: rgba(9, 16, 34, 0.55); font: 500 13px/1 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); color: #e9f2ff; }
+
+.w-thumbs { list-style: none; margin: clamp(20px, 3.5vh, 32px) 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 560px; }
+.w-thumbs a { display: block; border-radius: 10px; overflow: hidden; border: 1px solid rgba(120, 210, 255, 0.22); background: #fff; transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s; }
+.w-thumbs a:hover { transform: translateY(-3px); border-color: #00e5ff; }
+.w-thumbs img { display: block; width: 100%; height: auto; aspect-ratio: 26 / 18; object-fit: cover; }
+
+.w-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: clamp(24px, 4vh, 40px) 0 0; }
+.w-cta {
+  display: inline-flex; align-items: center; gap: 0.3em; padding: 0.85em 1.35em; border-radius: 999px; text-decoration: none;
+  background: #00e5ff; color: #03121a; font: 700 15px/1 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); letter-spacing: -0.01em;
+  box-shadow: 0 10px 30px rgba(0, 229, 255, 0.25); transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s;
+}
+.w-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(0, 229, 255, 0.38); }
+.w-link { color: rgba(233, 242, 255, 0.8); font: 500 14px/1 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); text-decoration: underline; text-decoration-color: rgba(0, 229, 255, 0.5); text-underline-offset: 4px; }
+.w-link:hover { color: #00e5ff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .w-visual, .w-pool { animation: none; }
+}

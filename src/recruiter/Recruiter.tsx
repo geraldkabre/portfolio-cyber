@@ -3,7 +3,8 @@ import { GITHUB, PROFILE } from '../content/profile';
 import { Visionaries } from './visionaries/Visionaries';
 import { visionaries } from './visionaries/engine';
 import { WorldLayer, type Origin } from './worlds/WorldLayer';
-import { WORLDS, worldIndex } from './worlds/content';
+import { WORLDS, worldIndex } from '../content/worlds';
+import { WorldContent } from '../content/WorldContent';
 
 /** Route = the open world, kept in the URL (#/education) so it can be shared and Back closes it. */
 const readRoute = () => {
@@ -78,6 +79,38 @@ export function Recruiter() {
       </footer>
       {layer && <WorldLayer id={layer.id} origin={layer.origin} leaving={layer.leaving} onLeft={onLeft} onClose={close} onGo={go} />}
       <PrintSummary />
+      <GpuWarmup />
+      {/* Warms the display weights (load + shaping) so the first world opens without a font stall. */}
+      <div className="rc-font-warm" aria-hidden="true">
+        {[400, 500, 600, 700, 800].map((w) => <span key={w} style={{ fontWeight: w }}>Gérald Kabré 0123456789 The quick brown fox jumps over the lazy dog. KABRÉ STUDY BUILD SECURE CISCO CTF STACK HELLO FR·EN·中文</span>)}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Draws one world page, nearly invisible, for a few frames at arrival (while the stage is still black): the GPU
+ * compiles its effects (blurs, gradient text, round clips, large glyphs) then, not during the first dive.
+ */
+function GpuWarmup() {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    let n = 0; let raf = 0;
+    const tick = () => { if (++n >= 4) setOn(false); else raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  if (!on) return null;
+  return (
+    <div className="rc-gpu-warm" aria-hidden="true">
+      <div className="w-lens" style={{ display: 'block', left: 0, top: 0, width: 160, height: 160, transform: 'scale(0.5)' }}>
+        <div className="w-lens-img" style={{ left: 0, top: 0, width: 320, height: 200, transform: 'scale(2)', backgroundImage: `url("${WORLDS[0].image}")` }} />
+      </div>
+      <div className="w-hero">
+        <WorldContent world={WORLDS[0]} level={2} />
+        <span className="w-line" style={{ filter: 'blur(8px)', transform: 'translate3d(0, 4px, 0)' }}>Warm</span>
+        <span className="w-num" style={{ filter: 'blur(3px)' }}>2026</span>
+      </div>
     </div>
   );
 }

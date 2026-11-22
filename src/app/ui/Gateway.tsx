@@ -8,28 +8,27 @@ export function Gateway({ onImmersive }: { onImmersive: () => void }) {
       <div className="cv-gateway-inner">
         <p className="cv-kicker">CYBERVERSE · The Sentinel Nexus</p>
         <h1 className="cv-title">{PROFILE.name}</h1>
-        <p className="cv-gateway-role">{PROFILE.title} · {PROFILE.focus} · {PROFILE.location} <FlagBF size={14} /></p>
+        <p className="cv-gateway-role">{PROFILE.summary} <span className="cv-gateway-place">{PROFILE.location} <FlagBF size={14} /></span></p>
         <p className="cv-gateway-ask">How would you like to view the portfolio?</p>
         <div className="cv-modes">
           <a className="cv-mode" href="/recruiter/">
             <span className="cv-mode-tag">Recruiter Mode</span>
-            <strong>The complete portfolio, straight away</strong>
+            <strong>The portfolio, straight away.</strong>
             <span>
-              One fast, readable page — profile, education, experience, projects, certifications, Root-Me write-ups,
-              skills, languages and contact, each with its GitHub link. No 3D, no sound, no map to cross; works on any
-              device.
+              Nine short worlds on a ring of glass: profile, education, experience, projects, certifications, Root-Me,
+              skills, languages and contact. Tap one for its summary; every detail is one click away on GitHub. No 3D,
+              no sound — made for phones too.
             </span>
-            <em>About 2 minutes to read →</em>
+            <em>About a minute →</em>
           </a>
           <button type="button" className="cv-mode is-immersive" onClick={onImmersive}>
             <span className="cv-mode-tag">Immersive Mode</span>
-            <strong>Explore the 3D cybersecurity campus</strong>
+            <strong>Walk the 3D campus.</strong>
             <span>
-              Choose an operator and walk through the Sentinel Nexus: seven districts, each presenting one part of the
-              portfolio, with a campus map for fast travel and a chill ambient soundtrack. Keyboard and mouse on a
-              computer, touch controls on phones and tablets.
+              Choose an operator and explore the Sentinel Nexus: seven districts, the same summaries as Recruiter Mode,
+              a map for fast travel and a chill soundtrack. Keyboard and mouse on a computer, touch controls on phones.
             </span>
-            <em>About 15 MB to load · sound on →</em>
+            <em>About 15 MB · sound on →</em>
           </button>
         </div>
       </div>

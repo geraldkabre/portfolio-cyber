@@ -150,12 +150,29 @@ export class GlassFilter {
     rgb.setAttribute('in2', 'b');
     rgb.setAttribute('mode', 'screen');
     filter.append(rg, rgb);
+    // Lite twin for the discs away from the top: the same Snell's-law lens, one displacement pass (no chromatic
+    // split) — about a third of the GPU work, where the fringes would be too small to see anyway.
+    const lite = document.createElementNS(SVG_NS, 'filter');
+    for (const a of ['x', 'y', 'width', 'height', 'color-interpolation-filters']) lite.setAttribute(a, filter.getAttribute(a)!);
+    lite.setAttribute('id', `${id}-lite`);
+    const liteImage = image.cloneNode() as SVGFEImageElement;
+    const liteMap = document.createElementNS(SVG_NS, 'feDisplacementMap');
+    liteMap.setAttribute('in', 'SourceGraphic');
+    liteMap.setAttribute('in2', 'map');
+    liteMap.setAttribute('xChannelSelector', 'R');
+    liteMap.setAttribute('yChannelSelector', 'G');
+    lite.append(liteImage, liteMap);
     const defs = document.createElementNS(SVG_NS, 'defs');
-    defs.appendChild(filter);
+    defs.append(filter, lite);
     svg.appendChild(defs);
     this.svg = svg;
     this.image = image;
+    this.liteImage = liteImage;
+    this.liteMap = liteMap;
   }
+
+  private readonly liteImage: SVGFEImageElement;
+  private readonly liteMap: SVGFEDisplacementMapElement;
 
   /** (Re)bakes the map for the current disc box; cheap enough to run on a debounced resize. */
   bake(d0: number) {
@@ -163,9 +180,11 @@ export class GlassFilter {
     this.d0 = d0;
     const res = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
     const map = bakeDisplacementMap(d0, res);
-    this.image.setAttribute('href', map.url);
-    this.image.setAttribute('width', String(d0));
-    this.image.setAttribute('height', String(d0));
+    for (const im of [this.image, this.liteImage]) {
+      im.setAttribute('href', map.url);
+      im.setAttribute('width', String(d0));
+      im.setAttribute('height', String(d0));
+    }
     this.baseScale = map.baseScale;
     this.lastWob = NaN;
     this.apply(1);
@@ -180,6 +199,7 @@ export class GlassFilter {
     this.maps[0].setAttribute('scale', (s * (1 + c)).toFixed(2));
     this.maps[1].setAttribute('scale', s.toFixed(2));
     this.maps[2].setAttribute('scale', (s * (1 - c)).toFixed(2));
+    this.liteMap.setAttribute('scale', s.toFixed(2));
   }
 
   get scales() {

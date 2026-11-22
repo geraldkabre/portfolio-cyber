@@ -50,27 +50,34 @@ try {
     check('short page: the ring and one footer line, no long duplicated sections', short.sections === 0 && short.height < short.vh * 1.3, `${short.height}px for a ${short.vh}px window`);
     check('the new short description is used', short.footer.includes(SUMMARY), short.footer.slice(0, 90));
 
-    // Slow-motion dive from the focal disc: the circle grows fast, lingers in the middle, then finishes.
+    // The dive from the focal disc: quick (~1 s), smooth S-curve, and fluid (frame times measured).
     await page.evaluate(() => window.__vis.markInput());
     const trace = await page.evaluate(() => new Promise((res) => {
       document.querySelector('.vis-cta').click();
       const pts = []; const t0 = performance.now();
       const f = () => {
-        const L = document.querySelector('.w-layer');
-        const m = L && /circle\(([\d.]+)px/.exec(getComputedStyle(L).clipPath);
-        pts.push([performance.now() - t0, m ? Number(m[1]) : null]);
-        if (performance.now() - t0 < 2600) requestAnimationFrame(f); else res(pts);
+        // Radius of the dive's lens = its scale × half its size (null once it has handed over to the page).
+        const L = document.querySelector('.w-lens');
+        const cs = L && getComputedStyle(L);
+        const r = cs && cs.display !== 'none' && cs.transform !== 'none' ? new DOMMatrix(cs.transform).a * L.offsetWidth / 2 : null;
+        pts.push([performance.now() - t0, r]);
+        if (performance.now() - t0 < 1800) requestAnimationFrame(f); else res(pts);
       };
       requestAnimationFrame(f);
     }));
     const firstIn = trace.find((p) => p[1] !== null)?.[0] ?? 0; // the layer's own clock
     const radii = trace.filter((p) => p[1] !== null).map((p) => [p[0] - firstIn, p[1]]);
-    const at = (ms) => radii.reduce((b, p) => (Math.abs(p[0] - ms) < Math.abs(b[0] - ms) ? p : b), radii[0])[1];
     const full = Math.max(...radii.map((p) => p[1]));
-    const early = (at(380) - at(0)) / 380, middle = (at(1150) - at(750)) / 400;
     const grows = radii.every((p, i) => i === 0 || p[1] >= radii[i - 1][1] - 0.5);
-    check('slow-motion dive: the circle grows from the disc, slows down mid-way, then fills the screen (~1.9 s)', grows && at(0) < 150 && middle < early * 0.6 && radii[radii.length - 1][0] > 1700, `r(0)=${at(0)?.toFixed(0)} px, start ${early.toFixed(2)} px/ms vs middle ${middle.toFixed(2)} px/ms, full ${full.toFixed(0)} px`);
-    await sleep(900);
+    const done = radii.find((p) => p[1] >= full - 1)?.[0] ?? 9999;
+    // Frame times once the lens moves (the first frames mount the page, before the motion starts).
+    const moving = radii.findIndex((p, i) => i > 0 && p[1] > radii[0][1] + 0.5);
+    const dts = radii.slice(Math.max(1, moving)).map((p, i) => p[0] - radii[Math.max(1, moving) + i - 1][0]).filter((d, i) => radii[Math.max(1, moving) + i][0] <= done);
+    const sorted = [...dts].sort((a, b) => a - b);
+    const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
+    check('dive: the circle grows from the disc to the full screen in about 1 s', grows && radii[0][1] < 90 && done > 850 && done < 1300, `r(0)=${radii[0][1].toFixed(0)} px → ${full.toFixed(0)} px in ${done.toFixed(0)} ms`);
+    check('dive: fluid (no long frames while the circle grows)', p95 < 25 && Math.max(...dts) < 50, `${dts.length} frames, p95 ${p95.toFixed(1)} ms, worst ${Math.max(...dts).toFixed(1)} ms`);
+    await sleep(1200);
     let w = await worldState(page);
     check('the profile world opens on its own page (#/profile), fully revealed', w?.hash === '#/profile' && (await hiddenBlocks(page)) === 0 && w.text.includes(SUMMARY), w?.hash);
     await shot(page, 'desktop-profile.png');
@@ -91,13 +98,24 @@ try {
         await shot(page, 'desktop-skills.png');
       }
       if (id === 'projects') await shot(page, 'desktop-projects.png');
-      if (k < WORLDS.length - 1) { await page.click('.w-arrows button[aria-label^="Next"]'); await sleep(2300); }
+      if (k === 1) {
+        // Swap to the next world, frame by frame: short and fluid.
+        const sw = await page.evaluate(() => new Promise((res) => {
+          document.querySelector('.w-arrows button[aria-label^="Next"]').click();
+          const ts = []; const t0 = performance.now();
+          const f = (t) => { ts.push(t); if (performance.now() - t0 < 1000) requestAnimationFrame(f); else res(ts); };
+          requestAnimationFrame(f);
+        }));
+        const d = sw.slice(3).map((t, i) => t - sw[i + 2]).sort((a, b) => a - b); // after the click's own frames
+        check('switching world: fluid swap (frame times; one longer frame allowed while the old page is already faded out)', d[Math.floor(d.length * 0.95)] < 25 && d[d.length - 1] < 60, `p95 ${d[Math.floor(d.length * 0.95)].toFixed(1)} ms, worst ${d[d.length - 1].toFixed(1)} ms`);
+        await sleep(1000);
+      } else if (k < WORLDS.length - 1) { await page.click('.w-arrows button[aria-label^="Next"]'); await sleep(1500); }
     }
     check('nine worlds, each with a short summary, settled counters and its GitHub link', allOk, allOk ? seen.join(', ') : issues.slice(0, 2).join(' '));
 
     // Keyboard and Back.
     await page.keyboard.press('ArrowRight');
-    await sleep(2300);
+    await sleep(1500);
     check('→ wraps from Contact to Profile', (await worldState(page))?.hash === '#/profile');
     await page.goBack();
     await sleep(1700);
@@ -145,11 +163,15 @@ try {
     check('phone: no horizontal overflow on the world page', w && !w.overflow);
     await shot(page, 'phone-world.png');
     await page.locator('.w-arrows button[aria-label^="Next"]').tap();
-    await sleep(2400);
-    await page.locator('.w-arrows button[aria-label^="Next"]').tap();
-    await sleep(2400);
+    await sleep(1600);
+    // Swipe left on the page = next world.
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 320, y: 560 }] });
+    for (let k = 1; k <= 8; k++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 320 - k * 25, y: 560 + k }] }); await sleep(16); }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await sleep(1600);
     await shot(page, 'phone-world-2.png');
-    check('phone: arrows move between worlds', (await worldState(page))?.hash === `#/${WORLDS[(focal + 2) % 9]}`);
+    check('phone: arrow and swipe both move to the next world', (await worldState(page))?.hash === `#/${WORLDS[(focal + 2) % 9]}`, (await worldState(page))?.hash);
     check('phone: no console errors', logs.length === 0, logs.slice(0, 3).join(' | '));
     await ctx.close();
   }
