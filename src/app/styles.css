@@ -126,7 +126,7 @@ a { color: var(--cyan); }
 
 @media (max-width: 640px) {
   .cv-look-hint { display: none; }
-  .cv-location { top: 12px; left: 12px; max-width: calc(100% - 200px); font-size: 0.66rem; padding: 0.4rem 0.65rem; }
+  .cv-location { top: 58px; left: 12px; max-width: calc(100% - 24px); font-size: 0.66rem; padding: 0.4rem 0.65rem; }
   .cv-location span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cv-hud-actions { top: 10px; right: 12px; gap: 0.35rem; }
   .cv-select-cards { gap: 10px; }
@@ -191,3 +191,17 @@ a { color: var(--cyan); }
 .cv-map-actions em { color: var(--cyan); font-style: normal; font-size: 0.78rem; }
 .cv-map-actions a { font-size: 0.78rem; }
 @media (max-width: 760px) { .cv-map { grid-template-columns: 1fr; } .cv-audio input[type=range] { display: none; } .cv-hud-actions .cv-quality { display: none; } }
+
+/* ---------- touch controls */
+.cv-touch { position: absolute; inset: 0; pointer-events: none; }
+.cv-lookpad { position: absolute; top: 64px; right: 0; bottom: 0; width: 55%; pointer-events: auto; touch-action: none; }
+.cv-stick {
+  position: absolute; left: 22px; bottom: 26px; width: 136px; height: 136px; border-radius: 50%; pointer-events: auto; touch-action: none;
+  border: 1px solid rgba(0, 229, 255, 0.45); background: radial-gradient(circle, rgba(0, 229, 255, 0.12), rgba(7, 11, 24, 0.45) 70%);
+  display: grid; place-items: center; backdrop-filter: blur(4px);
+}
+.cv-knob { width: 56px; height: 56px; border-radius: 50%; background: rgba(0, 229, 255, 0.35); border: 1px solid var(--cyan); box-shadow: 0 0 18px rgba(0, 229, 255, 0.45); pointer-events: none; }
+.cv-touch-buttons { position: absolute; right: 20px; bottom: 26px; display: grid; grid-template-columns: repeat(3, 58px); gap: 10px; pointer-events: auto; }
+.cv-tbtn { width: 58px; height: 58px; border-radius: 50%; border: 1px solid var(--line); background: rgba(9, 16, 34, 0.75); color: var(--ice); font: 700 1.1rem var(--mono); touch-action: manipulation; }
+.cv-tbtn.is-ready { border-color: var(--cyan); background: rgba(0, 229, 255, 0.22); box-shadow: 0 0 16px rgba(0, 229, 255, 0.4); }
+.phase-play .cv-prompt { bottom: 30%; }

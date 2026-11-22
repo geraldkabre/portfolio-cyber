@@ -22,6 +22,8 @@ export interface UIState {
   quality: QualityLevel;
   flash: number;
   debug: boolean;
+  /** Touch screen (coarse pointer, or ?touch=1): virtual stick and buttons instead of keyboard hints. */
+  touch: boolean;
   fps: number;
   frameMs: number;
   drawCalls: number;
@@ -34,6 +36,7 @@ class Store {
   private state: UIState = {
     phase: 'gateway', progress: 0, progressLabel: '', error: null, hovered: 'female', selected: null, prompt: null,
     panel: null, location: 'NEXUS PRIME', district: 'command', walkMode: false, pointerLocked: false, quality: 'high', flash: 0, debug: false,
+    touch: typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch')),
     fps: 0, frameMs: 0, drawCalls: 0,
   };
   private listeners = new Set<Listener>();

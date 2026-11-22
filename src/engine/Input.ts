@@ -48,12 +48,31 @@ export class Input {
     if (!this.enabled) return { x: 0, y: 0 };
     const f = (this.down.has('KeyW') || this.down.has('ArrowUp') ? 1 : 0) - (this.down.has('KeyS') || this.down.has('ArrowDown') ? 1 : 0);
     const r = (this.down.has('KeyD') || this.down.has('ArrowRight') ? 1 : 0) - (this.down.has('KeyA') || this.down.has('ArrowLeft') ? 1 : 0);
+    if (f === 0 && r === 0) return { x: this.touchMove.x, y: this.touchMove.y }; // analog virtual stick
     const len = Math.hypot(f, r) || 1;
     return { x: r / len, y: f / len };
   }
 
+  /** Virtual joystick (touch): x = right, y = forward, length <= 1. */
+  readonly touchMove = { x: 0, y: 0 };
+  touchSprint = false;
+
+  /** True while the virtual stick is pushed only a little (analog walk). */
+  get touchWalk() {
+    const m = Math.hypot(this.touchMove.x, this.touchMove.y);
+    return m > 0 && m < 0.55;
+  }
+
+  /** Camera drag on touch screens (pixels). */
+  touchLook(dx: number, dy: number) {
+    if (!this.enabled) return;
+    this.lookX += dx * 1.5;
+    this.lookY += dy * 1.5;
+    this.lastLookAt = performance.now();
+  }
+
   get sprint() {
-    return this.isDown('ShiftLeft') || this.isDown('ShiftRight');
+    return this.isDown('ShiftLeft') || this.isDown('ShiftRight') || this.touchSprint;
   }
 
   /** Consumes the accumulated look delta (radians). */

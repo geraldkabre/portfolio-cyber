@@ -3,6 +3,7 @@ import { bridge } from '../bridge';
 import { useUI } from '../store';
 import type { QualityLevel } from '../../engine/quality';
 import { ambient } from '../../audio/AmbientMusic';
+import { TouchControls } from './TouchControls';
 
 export function Hud() {
   const phase = useUI((s) => s.phase);
@@ -12,6 +13,7 @@ export function Hud() {
   const locked = useUI((s) => s.pointerLocked);
   const panel = useUI((s) => s.panel);
   const debug = useUI((s) => s.debug);
+  const touch = useUI((s) => s.touch);
   const [hintsVisible, setHintsVisible] = useState(true);
 
   useEffect(() => {
@@ -42,9 +44,10 @@ export function Hud() {
         </div>
       )}
 
-      {!locked && !panel && <div className="cv-look-hint">Click the scene to look around with the mouse · M for the map</div>}
+      {!touch && !locked && !panel && <div className="cv-look-hint">Click the scene to look around with the mouse · M for the map</div>}
+      {touch && !panel && <TouchControls />}
 
-      <div className={`cv-controls ${hintsVisible ? '' : 'is-faded'}`} onMouseEnter={() => setHintsVisible(true)}>
+      {!touch && <div className={`cv-controls ${hintsVisible ? '' : 'is-faded'}`} onMouseEnter={() => setHintsVisible(true)}>
         <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span>
         <span><kbd>Shift</kbd> sprint</span>
         <span className={walk ? 'is-on' : ''}><kbd>C</kbd> walk {walk ? 'on' : 'off'}</span>
@@ -52,7 +55,7 @@ export function Hud() {
         <span><kbd>E</kbd> interact</span>
         <span><kbd>M</kbd> map</span>
         <span><kbd>H</kbd> help</span>
-      </div>
+      </div>}
 
       {debug && <DebugOverlay />}
     </div>

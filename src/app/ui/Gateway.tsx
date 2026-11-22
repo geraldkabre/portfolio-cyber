@@ -26,8 +26,8 @@ export function Gateway({ onImmersive }: { onImmersive: () => void }) {
             <strong>Explore the 3D cybersecurity campus</strong>
             <span>
               Choose an operator and walk through the Sentinel Nexus: seven districts, each presenting one part of the
-              portfolio, with a campus map for fast travel and a chill ambient soundtrack. Best on a computer with
-              keyboard and mouse.
+              portfolio, with a campus map for fast travel and a chill ambient soundtrack. Keyboard and mouse on a
+              computer, touch controls on phones and tablets.
             </span>
             <em>About 15 MB to load · sound on →</em>
           </button>

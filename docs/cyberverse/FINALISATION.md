@@ -76,10 +76,7 @@ Voir aussi `ARCHITECTURE.md` et `MILESTONE_3_REPORT.md`.
   - il n'est pas écrit dans le code ; il vient de la variable `VITE_CONTACT_EMAIL` (voir `.env.example`) ;
   - à définir dans `.env.local` en local et dans les variables d'environnement Netlify ;
   - sans elle, les liens e-mail sont masqués.
-- **Photo** :
-  - aucune photo n'existe dans le dépôt ni dans son historique, et l'avatar GitHub est l'icône par défaut ;
-  - un monogramme « GK » est affiché à la place ;
-  - déposer `public/assets/profile/photo.jpg` le remplace partout au prochain build.
+- **Photo** : ta photo est intégrée, recadrée en 480×480 (`public/assets/profile/photo.jpg`). Elle apparaît dans le mode recruteur et dans le dossier du Command Center. Le fichier d'origine est conservé tel quel dans `assets-source/profile/`, qui n'est pas publié.
 
 ## 4. Vérifications (version de production, Edge, vrai GPU Intel UHD)
 
@@ -95,7 +92,11 @@ Voir aussi `ARCHITECTURE.md` et `MILESTONE_3_REPORT.md`.
 Limites connues :
 - la musique n'a pas été écoutée : un test sans affichage ne peut vérifier que le moteur audio ;
 - le verrouillage du pointeur n'est pas testable sans affichage ;
-- il n'y a pas de commandes tactiles : sur mobile, le mode recruteur est recommandé, et l'écran d'accueil le présente en premier.
+- **commandes tactiles ajoutées** sur téléphone et tablette :
+  - joystick analogique à gauche (léger = marche, poussé = course) ;
+  - glisser du doigt à droite pour la caméra ;
+  - boutons Interagir, Saut et Sprint.
+  Test en vue téléphone : 7 / 7 (`tools/e2e/run-touch.mjs`). Pas encore essayé sur un vrai téléphone.
 
 ## 5. Déploiement (avec ton accord)
 

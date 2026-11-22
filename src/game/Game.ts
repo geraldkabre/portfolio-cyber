@@ -291,7 +291,7 @@ export class Game {
     const wheel = this.input.consumeWheel();
     if (wheel) cam.zoom(wheel);
     const move = this.input.moveVector();
-    const intent = { x: move.x, y: move.y, sprint: this.input.sprint, walk: ui.walkMode };
+    const intent = { x: move.x, y: move.y, sprint: this.input.sprint, walk: ui.walkMode || this.input.touchWalk };
     // Fixed-step simulation + interpolation (no jitter when the frame time varies).
     this.accumulator = Math.min(this.accumulator + dt, STEP * 5);
     while (this.accumulator >= STEP) {
@@ -376,15 +376,8 @@ export class Game {
 
   // ---------------------------------------------------------------- UI bridge
   private bindInput() {
-    this.input.on('interact', () => {
-      const ui = store.get();
-      if (ui.phase === 'select') { this.confirm(); return; }
-      if (ui.phase !== 'play' || ui.panel) return;
-      const p = this.player!.position;
-      const it = this.world.interactables.find((i) => Math.hypot(i.position.x - p.x, i.position.z - p.z) < i.radius && Math.abs(i.position.y - p.y) < 2.5);
-      if (it) this.openPanel(it.panel);
-    });
-    this.input.on('jump', () => { if (store.get().phase === 'play' && !store.get().panel) this.player?.jump(); });
+    this.input.on('interact', () => this.interact());
+    this.input.on('jump', () => this.jump());
     this.input.on('toggleWalk', () => { if (store.get().phase === 'play') store.set({ walkMode: !store.get().walkMode }); });
     this.input.on('escape', () => { if (store.get().panel) this.closePanel(); });
     this.input.on('help', () => { if (store.get().phase === 'play') this.openPanel(store.get().panel === 'help' ? null : 'help'); });
@@ -400,6 +393,27 @@ export class Game {
       if (e.code === 'ArrowRight' || e.code === 'KeyD') this.hover('male');
     });
     document.addEventListener('pointerlockchange', () => store.set({ pointerLocked: this.input.pointerLocked }));
+  }
+
+  /** E key / touch button: confirm the operator, or open the terminal in reach. */
+  interact() {
+    const ui = store.get();
+    if (ui.phase === 'select') { this.confirm(); return; }
+    if (ui.phase !== 'play' || ui.panel) return;
+    const p = this.player!.position;
+    const it = this.world.interactables.find((i) => Math.hypot(i.position.x - p.x, i.position.z - p.z) < i.radius && Math.abs(i.position.y - p.y) < 2.5);
+    if (it) this.openPanel(it.panel);
+  }
+
+  jump() {
+    if (store.get().phase === 'play' && !store.get().panel) this.player?.jump();
+  }
+
+  /** Touch controls (virtual stick, camera drag, sprint toggle). */
+  touch(move: { x: number; y: number } | null, look?: { dx: number; dy: number }, sprint?: boolean) {
+    if (move) { this.input.touchMove.x = move.x; this.input.touchMove.y = move.y; }
+    if (look) this.input.touchLook(look.dx, look.dy);
+    if (sprint !== undefined) this.input.touchSprint = sprint;
   }
 
   openPanel(panel: PanelId) {
