@@ -93,6 +93,13 @@ try {
       const okNums = w.nums.every(([t, v]) => t === v);
       if (w.hash !== `#/${id}` || !okCta || !okNums || !w.headline || w.overflow) { allOk = false; issues.push(`${id}:${JSON.stringify({ hash: w.hash, cta: w.cta, nums: w.nums, overflow: w.overflow })}`); }
       seen.push(`${id}→${w.ctaLabel?.trim()}`);
+      // Every secondary line of the lists (schools, tags, levels, contacts) is actually visible.
+      const metas = await page.evaluate(() => [...document.querySelectorAll('.w-layer .w-item .w-dim, .w-layer .w-item .w-period')].map((m) => { const cs = getComputedStyle(m); const r = m.getBoundingClientRect(); return cs.position !== 'fixed' && Number(cs.opacity) > 0.99 && r.width > 0 && r.height > 0; }));
+      if (metas.some((v) => !v)) { allOk = false; issues.push(`${id}: hidden list details`); }
+      if (id === 'education') {
+        check('education: years shown, High School Diploma, preparatory classes, bachelor to January 2026', ['2022', 'High School Diploma', '2022 – 2024', 'Preparatory classes', '2024 – January 2026', 'March 2026 – now', 'Qingdao Binhai University', 'Dadoh University'].every((t) => w.text.includes(t)) && !/Baccalaur/.test(w.text) && /Three years/.test(w.headline));
+        await shot(page, 'desktop-education.png');
+      }
       if (id === 'skills') {
         check('skills: no levels, thesis tools added', !/Beginner|Intermediate/.test(w.text) && ['Squid + SquidGuard', 'pfBlockerNG', 'Nmap', 'VMware Workstation', 'RSTP & Port Security'].every((t) => w.text.includes(t)));
         await shot(page, 'desktop-skills.png');

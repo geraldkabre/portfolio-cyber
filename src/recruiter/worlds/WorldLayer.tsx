@@ -221,7 +221,7 @@ export function WorldLayer({ id, origin, leaving, onLeft, onClose, onGo }: Props
   const next = WORLDS[(t + 1) % WORLDS.length];
   return (
     <>
-    <div ref={dimRef} className="w-dim" aria-hidden="true" />
+    <div ref={dimRef} className="w-veil" aria-hidden="true" />
     <div ref={lensRef} className="w-lens" aria-hidden="true"><div className="w-lens-img" style={{ backgroundImage: `url("${world.image}")` }} /></div>
     <div ref={root} className="w-layer" role="dialog" aria-modal="true" aria-labelledby="w-title" style={{ ['--w-accent' as string]: world.accent }}>
       <div className="w-bg" aria-hidden="true" style={{ backgroundImage: `url("${world.image}")` }} />

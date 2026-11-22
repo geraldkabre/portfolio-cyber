@@ -8,7 +8,7 @@ import {
 import { SCENES } from '../recruiter/visionaries/scenes';
 
 export interface WorldStat { value: number; label: string; suffix?: string }
-export interface WorldItem { label: string; meta?: string; href?: string; status?: 'completed' | 'in-progress' }
+export interface WorldItem { label: string; meta?: string; href?: string; status?: 'completed' | 'in-progress'; period?: string }
 export interface WorldLink { label: string; href: string }
 
 export interface World {
@@ -62,7 +62,7 @@ export const WORLDS: World[] = [
     headline: ['Three years', 'of engineering.'],
     lead: 'Bachelor of Engineering in cybersecurity at Dadoh University, after preparatory classes at 2iE. Now learning Mandarin in China.',
     stats: [{ value: 2026, label: 'Bachelor of Engineering' }, { value: 3, label: 'years of engineering studies' }],
-    items: EDUCATION.map((e) => ({ label: e.title, meta: `${e.period} · ${e.school}` })),
+    items: EDUCATION.map((e) => ({ label: e.title, meta: e.school, period: e.period })),
     cta: { label: 'Details on GitHub', href: GITHUB.readme },
   },
   {

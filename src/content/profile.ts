@@ -51,10 +51,10 @@ export const PROFILE = {
 } as const;
 
 export const EDUCATION = [
-  { period: 'Since March 2026', title: 'Mandarin Chinese', school: 'Qingdao Binhai University, China', current: true },
-  { period: '2024 – 2026', title: 'Bachelor of Engineering — Cybersecurity of Computer & Industrial Systems', school: 'Dadoh University' },
-  { period: '2022 – 2024', title: 'Engineering preparatory classes — Engineering Sciences', school: '2iE (CTI-accredited)' },
-  { period: '2022', title: 'Baccalauréat — Experimental Sciences', school: 'Sacred Heart College, Dakar, Senegal' },
+  { period: 'March 2026 – now', title: 'Mandarin Chinese', school: 'Qingdao Binhai University, China', current: true },
+  { period: '2024 – January 2026', title: 'Bachelor of Engineering — Cybersecurity of Computer & Industrial Systems', school: 'Dadoh University' },
+  { period: '2022 – 2024', title: 'Preparatory classes', school: '2iE (CTI-accredited)' },
+  { period: '2022', title: 'High School Diploma', school: 'Sacred Heart College, Dakar, Senegal' },
 ] as const;
 
 export const EXPERIENCE = [

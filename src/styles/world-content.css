@@ -87,3 +87,14 @@
 @media (prefers-reduced-motion: reduce) {
   .w-visual, .w-pool { animation: none; }
 }
+
+/* Dated items (education): the years in their own column. */
+.w-item.has-period { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); column-gap: 1rem; row-gap: 0.15rem; justify-content: stretch; }
+.w-item.has-period > :not(.w-period) { grid-column: 2; }
+.w-item.has-period .w-dim { text-align: left; }
+.w-period { grid-row: span 2; font: 600 13px/1.4 var(--w-display, "Geist Variable", "Geist", system-ui, sans-serif); color: #00e5ff; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) {
+  .w-item.has-period { grid-template-columns: 1fr; }
+  .w-item.has-period > * { grid-column: 1 !important; }
+  .w-period { grid-row: auto; }
+}

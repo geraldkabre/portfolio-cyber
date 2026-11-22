@@ -43,7 +43,8 @@ export function WorldContent({ world, headingId, level = 1 }: { world: World; he
         {world.items && (
           <ul className="w-items">
             {world.items.map((it) => (
-              <li key={it.label} className="w-item w-anim">
+              <li key={it.label} className={`w-item w-anim${it.period ? ' has-period' : ''}`}>
+                {it.period && <span className="w-period">{it.period}</span>}
                 {it.href ? <a href={it.href} {...linkProps(it.href)}>{it.label}<span aria-hidden="true"> ↗</span></a> : <strong>{it.label}</strong>}
                 {it.meta && <span className={it.status ? `w-status ${it.status}` : 'w-dim'}>{it.meta}</span>}
               </li>
