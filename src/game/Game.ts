@@ -11,6 +11,14 @@ import { store, type OperatorId, type PanelId } from '../app/store';
 import { LAYOUT } from '../world/layout';
 import { PALETTE } from '../world/palette';
 import { beamMaterial, ringMaterial } from '../world/fx';
+import { DISTRICTS } from '../content/profile';
+import { ambient } from '../audio/AmbientMusic';
+
+/** Fixed physics step: movement is simulated at 60 Hz and interpolated for display (smooth at any frame rate). */
+const STEP = 1 / 60;
+const _probe = new THREE.Vector3();
+const _offset = new THREE.Vector3();
+const _local = new THREE.Vector3();
 
 const STAGE = {
   female: new THREE.Vector3(-1.3, 0, LAYOUT.spawn.z),
@@ -65,7 +73,9 @@ export class Game {
   private keyLight = new THREE.PointLight('#cfe3ff', 0, 14, 2);
   private contactShadow = createContactShadow();
   private transition: { t: number; from: THREE.Vector3; fromLook: THREE.Vector3 } | null = null;
-  private teleporting: { t: number; to: { position: THREE.Vector3; yaw: number }; which: 'gate' | 'back'; done: boolean } | null = null;
+  private teleporting: { t: number; target: string; from: string; surge?: { value: number }; done: boolean } | null = null;
+  private accumulator = 0;
+  private doorWasOpen = false;
   private dissolve: { t: number; id: OperatorId } | null = null;
   private lookAtCurrent = STAGE.look.clone();
   private reducedMotion = prefersReducedMotion();
@@ -180,13 +190,13 @@ export class Game {
     if (phase === 'entering' && this.transition && this.player && this.cam) this.tickEnter(dt);
     if (phase === 'play' && this.player && this.cam) this.tickPlay(dt);
     if (this.player) {
-      const p = this.player.position;
+      const p = this.player.renderPosition;
       const g = this.world.collision.ground(p.x, p.y + 0.4, p.z, 6);
       const height = g ? p.y - g.y : 6;
       this.contactShadow.position.set(p.x, (g?.y ?? p.y) + 0.02, p.z);
       this.contactShadow.scale.setScalar(1 + height * 0.25);
       (this.contactShadow.material as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.clamp(0.75 - height * 0.25, 0, 0.75);
-      if (store.get().phase === 'play') this.keyLight.position.copy(this.player.position).add(new THREE.Vector3(Math.sin(this.cam!.yaw) * 1.6, 2.4, Math.cos(this.cam!.yaw) * 1.6));
+      if (store.get().phase === 'play') this.keyLight.position.copy(this.player.renderPosition).add(_offset.set(Math.sin(this.cam!.yaw) * 1.6, 2.4, Math.cos(this.cam!.yaw) * 1.6));
     }
     this.world.update(dt, t, cam);
     this.statsTimer += dt;
@@ -281,52 +291,79 @@ export class Game {
     const wheel = this.input.consumeWheel();
     if (wheel) cam.zoom(wheel);
     const move = this.input.moveVector();
-    player.update(dt, { x: move.x, y: move.y, sprint: this.input.sprint, walk: ui.walkMode }, cam.yaw);
-    if (player.position.y < -30) this.respawn();
-    cam.update(dt, player.position);
+    const intent = { x: move.x, y: move.y, sprint: this.input.sprint, walk: ui.walkMode };
+    // Fixed-step simulation + interpolation (no jitter when the frame time varies).
+    this.accumulator = Math.min(this.accumulator + dt, STEP * 5);
+    while (this.accumulator >= STEP) {
+      player.simulate(STEP, intent, cam.yaw);
+      this.accumulator -= STEP;
+    }
+    player.present(this.accumulator / STEP);
+    player.animate(dt);
+    if (player.position.y < -60) this.respawn();
+    // Keyboard-only players: the camera lazily swings behind the operator when it moves forward and the mouse rests.
+    if (performance.now() - this.input.lastLookAt > 1200 && !this.input.pointerLocked) {
+      cam.follow(player.yaw, Math.max(0, move.y) * Math.min(1, player.horizontalSpeed / 3), dt);
+    }
+    cam.update(dt, player.renderPosition);
 
-    // Command Center gate opens when the operator approaches (or is inside).
     const p = player.position;
-    const onMain = p.y > -3 && Math.hypot(p.x, p.z) < 40;
-    const gateDist = p.distanceTo(this.world.cc.gatePosition);
-    this.world.cc.setDoorWanted(onMain && (gateDist < 7.5 || Math.hypot(p.x, p.z) < LAYOUT.cc.inradius));
+    const onNexus = this.world.active === 'command';
+    // Command Center gate opens when the operator approaches (or is inside).
+    const inHall = onNexus && Math.hypot(p.x, p.z) < LAYOUT.cc.inradius;
+    const open = onNexus && (p.distanceTo(this.world.cc.gatePosition) < 7.5 || inHall);
+    this.world.cc.setDoorWanted(open);
+    if (open !== this.doorWasOpen) { this.doorWasOpen = open; ambient.sfxPlay('door'); }
 
-    // Portals.
+    // Portals (trigger volume in each portal's local frame).
     if (!this.teleporting) {
-      const box = new THREE.Vector3(p.x, p.y + 0.9, p.z);
-      if (this.world.destinations.gateTrigger.containsPoint(box)) this.startTeleport('gate');
-      else if (this.world.destinations.backTrigger.containsPoint(box)) this.startTeleport('back');
+      _probe.set(p.x, p.y + 0.9, p.z);
+      for (const portal of this.world.portals) {
+        const l = _local.copy(_probe).applyMatrix4(portal.inverse);
+        if (Math.abs(l.x) < 1.75 && Math.abs(l.z) < 0.5 && l.y > -0.5 && l.y < 4) {
+          this.startTeleport(portal.to, portal.uniforms.uSurge);
+          break;
+        }
+      }
     } else this.tickTeleport(dt);
 
     // Interaction prompt + location.
     let prompt: string | null = null;
     for (const it of this.world.interactables) {
-      const dx = it.position.x - p.x, dz = it.position.z - p.z;
-      if (Math.hypot(dx, dz) < it.radius && Math.abs(it.position.y - p.y) < 2.5) { prompt = it.prompt; break; }
+      if (Math.hypot(it.position.x - p.x, it.position.z - p.z) < it.radius && Math.abs(it.position.y - p.y) < 2.5) { prompt = it.prompt; break; }
     }
-    const r = Math.hypot(p.x, p.z);
-    const location = !onMain ? 'ACADEMY OUTPOST  ·  IDENTITY & ACADEMY DISTRICT'
-      : r < LAYOUT.cc.inradius ? 'COMMAND CENTER  ·  OPERATIONS HALL'
-        : p.x > 18 && Math.abs(p.z) < 8 ? 'NEXUS PRIME  ·  EAST GATE'
-          : 'NEXUS PRIME  ·  PLAZA';
-    store.set({ prompt: ui.panel ? null : prompt, location, pointerLocked: this.input.pointerLocked });
+    const here = DISTRICTS.find((d) => d.id === this.world.active)!;
+    const location = onNexus ? (inHall ? 'COMMAND CENTER  ·  OPERATIONS HALL' : 'NEXUS PRIME  ·  PLAZA') : here.name.toUpperCase();
+    store.set({ prompt: ui.panel ? null : prompt, location, district: this.world.active, pointerLocked: this.input.pointerLocked });
   }
 
-  private startTeleport(which: 'gate' | 'back') {
-    const d = this.world.destinations;
-    this.teleporting = { t: 0, to: which === 'gate' ? d.outpostArrival : d.gateArrival, which, done: false };
+  /** Portal or map travel: flash, swap the active island at mid-flash, place the operator, fade back. */
+  private startTeleport(target: string, surge?: { value: number }) {
+    if (this.teleporting) return;
+    this.teleporting = { t: 0, target, from: this.world.active, surge, done: false };
     store.set({ flash: 1 });
+    ambient.sfxPlay(surge ? 'portal' : 'travel');
+  }
+
+  /** Fast travel from the campus map (or the debug API). */
+  travel(id: string) {
+    if (store.get().phase !== 'play') return;
+    this.closePanel();
+    this.startTeleport(id);
   }
 
   private tickTeleport(dt: number) {
     const tp = this.teleporting!;
     tp.t += dt;
-    this.world.destinations.surge(tp.which, Math.max(0, 1 - tp.t * 2));
+    if (tp.surge) tp.surge.value = Math.max(0, 1 - tp.t * 2);
     if (!tp.done && tp.t > (this.reducedMotion ? 0.05 : 0.32)) {
       tp.done = true;
-      this.player!.teleport(tp.to.position, tp.to.yaw);
-      this.cam!.snapBehind(tp.to.position, tp.to.yaw);
-      store.set({ flash: 0 });
+      const to = this.world.arrival(tp.target, tp.from);
+      this.world.setActive(tp.target);
+      this.player!.teleport(to.position, to.yaw);
+      this.accumulator = 0;
+      this.cam!.snapBehind(to.position, to.yaw);
+      store.set({ flash: 0, district: tp.target });
     }
     if (tp.t > 0.9) this.teleporting = null;
   }
@@ -345,13 +382,18 @@ export class Game {
       if (ui.phase !== 'play' || ui.panel) return;
       const p = this.player!.position;
       const it = this.world.interactables.find((i) => Math.hypot(i.position.x - p.x, i.position.z - p.z) < i.radius && Math.abs(i.position.y - p.y) < 2.5);
-      if (it) this.openPanel(it.id);
+      if (it) this.openPanel(it.panel);
     });
     this.input.on('jump', () => { if (store.get().phase === 'play' && !store.get().panel) this.player?.jump(); });
     this.input.on('toggleWalk', () => { if (store.get().phase === 'play') store.set({ walkMode: !store.get().walkMode }); });
     this.input.on('escape', () => { if (store.get().panel) this.closePanel(); });
     this.input.on('help', () => { if (store.get().phase === 'play') this.openPanel(store.get().panel === 'help' ? null : 'help'); });
     this.input.on('debug', () => store.set({ debug: !store.get().debug }));
+    this.input.on('map', () => { if (store.get().phase === 'play') this.openPanel(store.get().panel === 'map' ? null : 'map'); });
+    // The music starts with the first interaction when the page was opened through a deep link.
+    const kick = () => { if (ambient.settings.music && !ambient.running) ambient.start(); };
+    window.addEventListener('pointerdown', kick, { once: true });
+    window.addEventListener('keydown', kick, { once: true });
     window.addEventListener('keydown', (e) => {
       if (store.get().phase !== 'select') return;
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.hover('female');
@@ -363,6 +405,7 @@ export class Game {
   openPanel(panel: PanelId) {
     if (!panel) { this.closePanel(); return; }
     this.input.exitPointerLock();
+    if (store.get().panel !== panel) ambient.sfxPlay('open');
     store.set({ panel, prompt: null });
   }
 
@@ -406,6 +449,10 @@ export class Game {
         this.cam.yaw = yaw; this.cam.pitch = pitch; if (distance) this.cam.distance = distance;
       },
       openPanel: (p: PanelId) => this.openPanel(p),
+      travel: (id: string) => this.travel(id),
+      active: () => this.world.active,
+      terminals: () => this.world.interactables.map((i) => ({ id: i.id, panel: i.panel, position: i.position.toArray().map((v) => +v.toFixed(2)) })),
+      portals: () => this.world.portals.map((q) => ({ id: q.id, to: q.to })),
       // Profiling toggles.
       show: (name: string, visible: boolean) => {
         const o = this.engine.scene.getObjectByName(name);

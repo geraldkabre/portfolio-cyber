@@ -1,0 +1,28 @@
+# CYBERVERSE — Netlify configuration (deploy only with the owner's approval).
+# Set VITE_CONTACT_EMAIL in Site configuration > Environment variables to show the contact e-mail.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Recruiter Mode lives at /recruiter/ (dist/recruiter/index.html).
+[[redirects]]
+  from = "/recruiter"
+  to = "/recruiter/"
+  status = 301
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+
+# Hashed bundles never change; 3D assets and documents are cached for a week.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

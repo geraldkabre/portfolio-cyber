@@ -4,6 +4,7 @@ import type { CollisionWorld } from '../engine/Collision';
 const _target = new THREE.Vector3();
 const _dir = new THREE.Vector3();
 const _desired = new THREE.Vector3();
+const _focus = new THREE.Vector3();
 
 /**
  * Orbit camera behind the character: mouse yaw/pitch, wheel zoom, smoothed follow,
@@ -42,6 +43,17 @@ export class ThirdPersonCamera {
     this.pitch = THREE.MathUtils.clamp(this.pitch + dy, -0.32, 1.12);
   }
 
+  /**
+   * Lazily swings the camera behind the character while it moves forward without mouse input
+   * (keyboard-only players keep a natural view; any mouse movement takes priority).
+   */
+  follow(characterYaw: number, strength: number, dt: number) {
+    if (strength <= 0) return;
+    const target = characterYaw + Math.PI;
+    const d = Math.atan2(Math.sin(target - this.yaw), Math.cos(target - this.yaw));
+    this.yaw += d * (1 - Math.exp(-1.6 * strength * dt));
+  }
+
   zoom(steps: number) {
     this.distance = THREE.MathUtils.clamp(this.distance * (1 + steps * 0.12), this.minDistance, this.maxDistance);
   }
@@ -50,7 +62,8 @@ export class ThirdPersonCamera {
     _target.copy(feet).setY(feet.y + this.focusHeight);
     if (!this.initialized) { this.smoothed.copy(_target); this.initialized = true; }
     // Horizontal follow is tight, vertical follow softer (stairs, jumps).
-    const kh = 1 - Math.exp(-14 * dt), kv = 1 - Math.exp(-7 * dt);
+    // The target is already interpolated (fixed-step physics): follow it tightly, soften only the vertical.
+    const kh = 1 - Math.exp(-30 * dt), kv = 1 - Math.exp(-9 * dt);
     this.smoothed.x += (_target.x - this.smoothed.x) * kh;
     this.smoothed.z += (_target.z - this.smoothed.z) * kh;
     this.smoothed.y += (_target.y - this.smoothed.y) * kv;
@@ -61,7 +74,7 @@ export class ThirdPersonCamera {
     const cp = Math.cos(this.pitch);
     _dir.set(Math.sin(this.yaw) * cp, Math.sin(this.pitch), Math.cos(this.yaw) * cp);
     // Shoulder offset (to the right of the view direction).
-    const focus = this.smoothed.clone().add(new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw)).multiplyScalar(this.shoulder));
+    const focus = _focus.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw)).multiplyScalar(this.shoulder).add(this.smoothed);
     // Collision: cast from the focus point toward the desired camera position.
     const hit = this.world.raycast(focus, _dir, this.distance + 0.3);
     const allowed = hit !== null ? Math.max(0.55, hit - 0.3) : this.distance;

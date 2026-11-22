@@ -7,7 +7,7 @@ const W = Number(arg('--w', 1600)), H = Number(arg('--h', 900));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const { browser, page, logs } = await launch(W, H);
 await page.addInitScript((q) => { try { localStorage.setItem('cv.quality', q); } catch {} }, arg('--quality', 'high'));
-await page.goto(BASE + '/', { waitUntil: 'load' });
+await page.goto(BASE + '/?mode=immersive', { waitUntil: 'load' });
 await page.waitForFunction(() => window.__cv && window.__cv.state().phase === 'select', null, { timeout: 180000 });
 await page.evaluate(() => window.__cv.confirm('female'));
 await page.waitForFunction(() => window.__cv.state().phase === 'play', null, { timeout: 20000 });

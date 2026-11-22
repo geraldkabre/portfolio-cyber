@@ -16,6 +16,15 @@ await page.emulateMedia({ reducedMotion: 'reduce' });
 const state = () => page.evaluate(() => window.__cv.state());
 try {
   await page.goto(BASE + '/', { waitUntil: 'load' });
+  // Gateway: the visitor chooses Recruiter Mode or the immersive campus before anything heavy loads.
+  await page.waitForSelector('.cv-gateway', { timeout: 30000 });
+  const modes = await page.locator('.cv-mode').count();
+  const recruiterHref = await page.locator('a.cv-mode').getAttribute('href');
+  const engineLoaded = await page.evaluate(() => performance.getEntriesByType('resource').some((r) => /Game-|.vrm|.glb/.test(r.name)));
+  check('gateway offers Recruiter Mode and Immersive Mode', modes === 2 && recruiterHref === '/recruiter/', `modes=${modes} href=${recruiterHref}`);
+  check('nothing 3D is downloaded before the choice', !engineLoaded);
+  await page.screenshot({ path: path.join(out, 'gateway.png') });
+  await page.locator('button.cv-mode').click();
   await page.waitForFunction(() => window.__cv && window.__cv.state().phase === 'select', null, { timeout: 180000 });
   // Mouse: hover the second card, click it (selects), click again / primary button (confirms).
   const cards = page.locator('.cv-card');

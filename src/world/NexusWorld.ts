@@ -3,36 +3,44 @@ import type { Engine } from '../engine/Engine';
 import { CollisionWorld } from '../engine/Collision';
 import { MaterialLibrary } from './materials';
 import { Kit } from './kit';
-import { createCloudSea, createSky } from './atmosphere';
+import { ATMOSPHERE, createCloudSea, createSky } from './atmosphere';
 import { createIsland } from './island';
 import { createCommandCenter } from './commandCenter';
-import { createDestinations } from './destinations';
+import { createCampus, type Arrival, type Portal } from './campusWorld';
 import { createDistricts } from './districts';
 import { createProps } from './props';
 import { createLighting } from './lighting';
 import { batchStatic } from './batch';
 import { FX_TIME } from './fx';
 import { LAYOUT } from './layout';
+import { SITES } from './campus';
+import type { PanelKey } from '../content/profile';
 
 export interface Interactable {
-  id: 'dossier' | 'brief';
+  id: string;
+  panel: PanelKey;
   position: THREE.Vector3;
   radius: number;
   prompt: string;
 }
 
-/** Nexus Prime: the first playable island of the Sentinel Nexus (Milestone 3). */
+/** The Sentinel Nexus: Nexus Prime (Command Center) + six district islands reached through portals. */
 export class NexusWorld {
   readonly root = new THREE.Group();
   collision!: CollisionWorld;
   interactables: Interactable[] = [];
+  portals: Portal[] = [];
   lighting!: ReturnType<typeof createLighting>;
   cc!: ReturnType<typeof createCommandCenter>;
-  destinations!: ReturnType<typeof createDestinations>;
+  campus!: ReturnType<typeof createCampus>;
   props!: ReturnType<typeof createProps>;
   stats = { staticTriangles: 0, staticBatches: 0, colliderTriangles: 0 };
+  /** Island the operator is on: 'command' (Nexus Prime) or a district id. */
+  active = 'command';
   private updaters: ((dt: number, t: number) => void)[] = [];
   private sky!: ReturnType<typeof createSky>;
+  private districts!: ReturnType<typeof createDistricts>;
+  private engine!: Engine;
   materials!: MaterialLibrary;
 
   static async create(engine: Engine, onProgress: (p: number, label: string) => void) {
@@ -43,6 +51,7 @@ export class NexusWorld {
 
   private async build(engine: Engine, onProgress: (p: number, label: string) => void) {
     const { scene, renderer } = engine;
+    this.engine = engine;
     this.root.name = 'nexus-prime';
     this.materials = new MaterialLibrary(engine.quality.textureTier, Math.min(8, engine.maxAnisotropy));
     let mp = 0, cp = 0;
@@ -56,57 +65,79 @@ export class NexusWorld {
 
     this.lighting = createLighting(renderer, scene, engine.quality.shadowMapSize);
     this.root.add(this.lighting.group);
-
     this.sky = createSky(renderer);
     const clouds = createCloudSea(renderer);
     this.root.add(this.sky.mesh, clouds.mesh);
 
-    const island = createIsland(this.materials);
+    // Data lanes on the Nexus deck lead to the six portals and down the arrival avenue.
+    const island = createIsland(this.materials, { lanes: [...SITES.map((s) => s.az), 180] });
     this.cc = createCommandCenter(mega, this.materials);
-    this.destinations = createDestinations(mega, cyber);
     this.props = createProps(mega, cyber, engine.quality.particles);
-    const districts = createDistricts();
+    this.campus = createCampus(mega, cyber, this.materials);
+    this.districts = createDistricts();
 
-    // Static architecture -> a few merged draw calls.
     const staticRoot = new THREE.Group();
-    staticRoot.add(this.cc.staticGroup, this.destinations.staticGroup, this.props.staticGroup);
+    staticRoot.add(this.cc.staticGroup, this.props.staticGroup);
     const batched = batchStatic(staticRoot, 'nexus-static');
     this.stats.staticTriangles = batched.userData.triangles;
     this.stats.staticBatches = batched.userData.batches;
-    this.destinations.dynamic.name = 'dest-dynamic';
     this.props.dynamic.name = 'props-dynamic';
-    this.root.add(island.group, batched, this.cc.dynamic, this.destinations.dynamic, this.props.dynamic, districts.group);
+    this.root.add(island.group, batched, this.cc.dynamic, this.props.dynamic, this.districts.group, this.campus.root);
     scene.add(this.root);
 
-    engine.refreshShadows();
-    this.collision = new CollisionWorld([island.colliders, this.cc.colliders, this.destinations.colliders, this.props.colliders]);
+    this.collision = new CollisionWorld([island.colliders, this.cc.colliders, this.props.colliders, this.campus.colliders]);
     this.stats.colliderTriangles = this.collision.triangleCount;
-
+    this.portals = this.campus.portals;
     this.interactables = [
-      { id: 'dossier', position: this.cc.dossierPosition, radius: 3.4, prompt: 'Access the operator dossier' },
-      { id: 'brief', position: this.destinations.briefPosition, radius: 3.0, prompt: 'Read the district brief' },
+      { id: 'command', panel: 'profile', position: this.cc.dossierPosition, radius: 3.4, prompt: 'Open: profile — operator dossier' },
+      ...this.campus.terminals,
     ];
+    this.setActive('command');
 
     this.updaters.push(
       (_dt, t) => { FX_TIME.value = t; clouds.update(t); },
       (_dt, t) => island.update(t),
       (dt, t) => this.cc.update(dt, t),
-      (dt, t) => this.destinations.update(dt, t),
       (dt, t) => this.props.update(dt, t),
+      (_dt, t) => this.campus.update(t, this.active),
     );
-    // Procedural parts may have requested extra textures after the kits: wait for them too (no pop-in).
     await this.materials.ready();
     if (this.materials.missing.size) console.warn('[world] missing materials:', [...this.materials.missing]);
   }
 
   /** Spawn transform on the arrival pad. */
-  get spawn() {
+  get spawn(): Arrival {
     return { position: LAYOUT.spawn.clone(), yaw: LAYOUT.spawnYaw };
+  }
+
+  /** Where fast travel / portals place the operator. */
+  arrival(id: string, from?: string): Arrival {
+    if (id === 'command') {
+      const back = from ? this.campus.nexusArrivals.get(from) : undefined;
+      return back ? { position: back.position.clone(), yaw: back.yaw } : this.spawn;
+    }
+    const d = this.campus.districts.find((x) => x.id === id)!;
+    return { position: d.arrival.position.clone(), yaw: d.arrival.yaw };
+  }
+
+  /**
+   * Switches the detailed island (others become distant silhouettes) and recentres the static shadow map on it
+   * (rendered once per change).
+   */
+  setActive(id: string) {
+    this.active = id;
+    this.campus.setActive(id);
+    this.districts.setActive(id);
+    const c = id === 'command' ? new THREE.Vector3() : this.campus.districts.find((d) => d.id === id)!.center;
+    const moon = this.lighting.moon;
+    moon.target.position.copy(c);
+    moon.position.copy(c).addScaledVector(ATMOSPHERE.moonDir, 90);
+    moon.target.updateMatrixWorld();
+    this.engine.refreshShadows();
   }
 
   update(dt: number, t: number, camera: THREE.Camera) {
     this.sky.update(t, camera);
     for (const u of this.updaters) u(dt, t);
   }
-
 }

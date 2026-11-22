@@ -6,11 +6,22 @@ import { LAYOUT } from './layout';
 import type { MaterialLibrary } from './materials';
 import { PALETTE } from './palette';
 
+export interface IslandOptions {
+  /** World position of the island centre (deck level). */
+  center?: THREE.Vector3;
+  /** Scale of the plan (radii, hull depth); railing and curb heights stay human-sized. */
+  scale?: number;
+  /** Raised central plinth (Command Center) — Nexus Prime only. */
+  plinth?: boolean;
+  /** Azimuths (degrees, clockwise from north) of the glowing data lanes on the deck. */
+  lanes?: number[];
+}
+
 /**
  * Deck material: tileable kit metal in world space + procedural panel seams and animated cyan inlays
- * (concentric rings and eight "data lanes" carrying pulses from the Command Center to the rim).
+ * (concentric rings and data lanes carrying pulses outward, toward the portals).
  */
-function createDeckMaterial(lib: MaterialLibrary) {
+function createDeckMaterial(lib: MaterialLibrary, center: THREE.Vector3, scale: number, plinth: boolean, lanesAz: number[]) {
   const orm = lib.tex('trim03_orm', false, '1k');
   const m = new THREE.MeshStandardMaterial({
     name: 'deck',
@@ -24,7 +35,13 @@ function createDeckMaterial(lib: MaterialLibrary) {
     metalness: 0.5,
     envMapIntensity: 0.55,
   });
-  const uniforms = { uTime: { value: 0 }, uInlay: { value: 1 } };
+  const lanes = new Array(8).fill(0);
+  // Shader angle convention: atan(z, x); azimuth (from north, clockwise) -> angle = az - 90 degrees.
+  lanesAz.slice(0, 8).forEach((az, i) => { lanes[i] = THREE.MathUtils.degToRad(az - 90); });
+  const uniforms = {
+    uTime: { value: 0 }, uInlay: { value: 1 }, uCenter: { value: new THREE.Vector2(center.x, center.z) },
+    uScale: { value: scale }, uPlinth: { value: plinth ? 1 : 0 }, uLanes: { value: lanes }, uLaneCount: { value: Math.min(8, lanesAz.length) },
+  };
   m.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
@@ -33,14 +50,15 @@ function createDeckMaterial(lib: MaterialLibrary) {
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
 ${GLSL_COMMON}
-varying vec3 vCvWorld; uniform float uTime; uniform float uInlay;
+varying vec3 vCvWorld; uniform float uTime; uniform float uInlay; uniform vec2 uCenter; uniform float uScale;
+uniform float uPlinth; uniform float uLanes[8]; uniform int uLaneCount;
 `)
       .replace('#include <map_fragment>', `#include <map_fragment>
-vec2 P = vCvWorld.xz;
+vec2 P = (vCvWorld.xz - uCenter) / uScale;
 float r = length(P);
 float ang = atan(P.y, P.x + 1e-5);
 float seam = 0.0; float glow = 0.0; float panel = 0.0;
-if (r < ${LAYOUT.plinthRadius.toFixed(2)}) {
+if (uPlinth > 0.5 && r < ${LAYOUT.plinthRadius.toFixed(2)}) {
   // Plinth / Command Center hall: fine concentric panels.
   float ring = 1.6;
   float dR = abs(fract(r / ring + 0.5) - 0.5) * ring;
@@ -50,7 +68,7 @@ if (r < ${LAYOUT.plinthRadius.toFixed(2)}) {
   panel = cvHash12(vec2(floor(r / ring), floor(ang / step15)));
   glow += cvLine(r - 3.45, 0.03) * 1.2 + cvLine(r - 11.25, 0.035) * 0.9;
   glow += cvLine(r - 3.75, 0.012) * 0.6;
-} else if (r < ${LAYOUT.chamferOuter.toFixed(2)}) {
+} else if (uPlinth > 0.5 && r < ${LAYOUT.chamferOuter.toFixed(2)}) {
   float step6 = radians(6.0);
   float dA = abs(fract(ang / step6 + 0.5) - 0.5) * step6 * r;
   seam = cvLine(dA, 0.012);
@@ -61,20 +79,22 @@ if (r < ${LAYOUT.plinthRadius.toFixed(2)}) {
   float dR = abs(fract(rr / ring + 0.5) - 0.5) * ring;
   float step75 = radians(7.5);
   float dA = abs(fract(ang / step75 + 0.5) - 0.5) * step75 * r;
-  seam = max(cvLine(dR, 0.013), cvLine(dA, 0.013));
+  seam = max(cvLine(dR, 0.013 / uScale), cvLine(dA, 0.013 / uScale));
   panel = cvHash12(vec2(floor(rr / ring), floor(ang / step75)));
   glow += cvLine(r - 13.35, 0.035) * 1.1;
   glow += cvLine(r - 22.15, 0.022) * 0.45;
   glow += cvLine(r - 30.55, 0.03) * 0.8;
-  // Eight data lanes (every 45 degrees) with pulses travelling outward.
-  float lane = radians(45.0);
-  float dL = (fract(ang / lane + 0.5) - 0.5) * lane * r;
-  float laneMask = cvLine(dL, 0.028) * smoothstep(13.4, 13.9, r) * (1.0 - smoothstep(30.0, 30.4, r));
-  float laneId = floor(ang / lane + 0.5);
+  // Data lanes toward the portals, with pulses travelling outward.
+  float dL = 1e3; float laneId = 0.0;
+  for (int i = 0; i < 8; i++) {
+    if (i >= uLaneCount) break;
+    float d = mod(ang - uLanes[i] + 3.14159265, 6.2831853) - 3.14159265;
+    if (abs(d * r) < abs(dL)) { dL = d * r; laneId = float(i); }
+  }
+  float inLane = smoothstep(13.4, 13.9, r) * (1.0 - smoothstep(30.0, 30.4, r));
   float pulse = pow(fract((r - uTime * 2.6 - laneId * 1.7) / 8.5), 14.0);
-  glow += laneMask * (0.18 + 1.9 * pulse);
-  // Lane side rails: two faint parallel lines.
-  glow += (cvLine(abs(dL) - 0.22, 0.008)) * smoothstep(13.4, 14.0, r) * (1.0 - smoothstep(29.8, 30.3, r)) * 0.35;
+  glow += cvLine(dL, 0.028) * inLane * (0.18 + 1.9 * pulse);
+  glow += cvLine(abs(dL) - 0.22, 0.008) * inLane * 0.35;
 }
 diffuseColor.rgb *= (0.86 + 0.22 * panel) * (1.0 - 0.6 * seam);
 `)
@@ -104,12 +124,16 @@ function createHullMaterial(lib: MaterialLibrary) {
   });
 }
 
-export function createIsland(lib: MaterialLibrary) {
+/** Floating island: walkable deck, curb + glass balustrade, rim collider, stepped hull and gravity core. */
+export function createIsland(lib: MaterialLibrary, opts: IslandOptions = {}) {
+  const center = opts.center ?? new THREE.Vector3();
+  const s = opts.scale ?? 1;
+  const plinth = opts.plinth ?? true;
   const group = new THREE.Group();
   group.name = 'island';
   const colliders = new THREE.Group();
   colliders.name = 'island-colliders';
-  const { material: deckMat, uniforms: deckUniforms } = createDeckMaterial(lib);
+  const { material: deckMat, uniforms: deckUniforms } = createDeckMaterial(lib, center, s, plinth, opts.lanes ?? [0, 90, 180, 270]);
   const hullMat = createHullMaterial(lib);
   const metal = lib.get('MI_Trim_01');
   const glow = new THREE.MeshStandardMaterial({ name: 'rim-glow', color: '#000000', emissive: PALETTE.cyan, emissiveIntensity: 2.2 });
@@ -117,94 +141,86 @@ export function createIsland(lib: MaterialLibrary) {
 
   // Geometry is collected per material and merged at the end (one draw call per material).
   const buckets = new Map<THREE.Material, THREE.BufferGeometry[]>();
-  const add = (g: THREE.BufferGeometry, m: THREE.Material, opts: { collide?: boolean } = {}) => {
+  const add = (g: THREE.BufferGeometry, m: THREE.Material, o: { collide?: boolean } = {}) => {
+    g.translate(center.x, center.y, center.z);
     if (!buckets.has(m)) buckets.set(m, []);
     buckets.get(m)!.push(g);
-    if (opts.collide) colliders.add(new THREE.Mesh(g));
+    if (o.collide) colliders.add(new THREE.Mesh(g));
   };
 
-  const { plinthRadius: P, plinthTop: PT, chamferOuter: C, plazaRadius: R, curbTop, islandRadius: RO } = LAYOUT;
+  const P = LAYOUT.plinthRadius * s, PT = LAYOUT.plinthTop, C = LAYOUT.chamferOuter * s;
+  const R = LAYOUT.plazaRadius * s, RO = LAYOUT.islandRadius * s, curbTop = LAYOUT.curbTop;
+  const seg = Math.round(160 * Math.max(0.5, s));
 
   // ---- Deck (walkable)
-  add(disc(P, PT, { tile: 3 }), deckMat, { collide: true });
-  add(band(P, PT, C, 0, { worldUV: true, tile: 3 }), deckMat, { collide: true });
-  add(band(C, 0, R, 0, { worldUV: true, tile: 3, segments: 160 }), deckMat, { collide: true });
-  // Plinth outer lip (thin vertical face under the chamfer start, catches light).
-  add(band(P - 0.02, PT, P - 0.02, PT - 0.06, {}), metal);
+  if (plinth) {
+    add(disc(P, PT, { tile: 3 }), deckMat, { collide: true });
+    add(band(P, PT, C, 0, { worldUV: true, tile: 3 }), deckMat, { collide: true });
+    add(band(P - 0.02, PT, P - 0.02, PT - 0.06, {}), metal);
+    add(band(C, 0, R, 0, { worldUV: true, tile: 3, segments: seg }), deckMat, { collide: true });
+  } else {
+    add(disc(R, 0, { tile: 3, segments: seg }), deckMat, { collide: true });
+  }
 
   // ---- Curb, rail and glass balustrade
-  add(band(R, 0, R, curbTop, { flip: true, tile: 2, segments: 160 }), metal, { collide: true });
-  add(band(R, curbTop, RO, curbTop, { tile: 2, segments: 160 }), metal, { collide: true });
-  add(band(RO, curbTop, RO, -0.45, { tile: 2, segments: 160 }), metal);
-  add(band(R - 0.01, curbTop - 0.05, R - 0.01, curbTop - 0.02, { flip: true, segments: 160 }), glow); // inner curb light line
-  add(band(RO + 0.01, -0.25, RO + 0.01, -0.2, { segments: 160 }), glowSoft); // outer edge line
+  add(band(R, 0, R, curbTop, { flip: true, tile: 2, segments: seg }), metal, { collide: true });
+  add(band(R, curbTop, RO, curbTop, { tile: 2, segments: seg }), metal, { collide: true });
+  add(band(RO, curbTop, RO, -0.45, { tile: 2, segments: seg }), metal);
+  add(band(R - 0.01, curbTop - 0.05, R - 0.01, curbTop - 0.02, { flip: true, segments: seg }), glow);
+  add(band(RO + 0.01, -0.25, RO + 0.01, -0.2, { segments: seg }), glowSoft);
 
   const glass = new THREE.MeshPhysicalMaterial({
     name: 'balustrade-glass', color: '#5fb6ff', roughness: 0.08, metalness: 0.2, transparent: true, opacity: 0.16,
     depthWrite: false, side: THREE.DoubleSide, envMapIntensity: 1.4,
   });
-  const rail = LAYOUT.railRadius;
-  const glassMesh = new THREE.Mesh(band(rail, curbTop + 0.05, rail, curbTop + 1.12, { segments: 160 }), glass);
+  const rail = (LAYOUT.railRadius - LAYOUT.plazaRadius) + R;
+  const glassMesh = new THREE.Mesh(band(rail, curbTop + 0.05, rail, curbTop + 1.12, { segments: seg }).translate(center.x, center.y, center.z), glass);
   glassMesh.renderOrder = 2;
   group.add(glassMesh);
-  // Top rail (metal tube) + slim cyan light under it.
-  add(new THREE.TorusGeometry(rail, 0.045, 8, 220).rotateX(Math.PI / 2).translate(0, curbTop + 1.16, 0), metal);
-  add(new THREE.TorusGeometry(rail - 0.02, 0.012, 6, 220).rotateX(Math.PI / 2).translate(0, curbTop + 1.1, 0), glow);
+  add(new THREE.TorusGeometry(rail, 0.045, 8, seg + 60).rotateX(Math.PI / 2).translate(0, curbTop + 1.16, 0), metal);
+  add(new THREE.TorusGeometry(rail - 0.02, 0.012, 6, seg + 60).rotateX(Math.PI / 2).translate(0, curbTop + 1.1, 0), glow);
   // Posts (instanced).
+  const postCount = Math.round(72 * s);
   const postGeo = new THREE.BoxGeometry(0.08, 1.12, 0.14);
   postGeo.translate(0, curbTop + 0.6, 0);
-  const posts = new THREE.InstancedMesh(postGeo, metal, 72);
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1);
-  for (let i = 0; i < 72; i++) {
-    const a = (i / 72) * Math.PI * 2;
-    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -a);
-    m4.compose(new THREE.Vector3(Math.cos(a) * rail, 0, Math.sin(a) * rail), q, s);
+  const posts = new THREE.InstancedMesh(postGeo, metal, postCount);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0);
+  for (let i = 0; i < postCount; i++) {
+    const a = (i / postCount) * Math.PI * 2;
+    q.setFromAxisAngle(up, -a);
+    m4.compose(new THREE.Vector3(center.x + Math.cos(a) * rail, center.y, center.z + Math.sin(a) * rail), q, one);
     posts.setMatrixAt(i, m4);
   }
-  posts.castShadow = false;
   posts.receiveShadow = true;
   group.add(posts);
   // Invisible rim wall keeps the player on the island.
-  const wall = new THREE.CylinderGeometry(R - 0.05, R - 0.05, 4, 96, 1, true);
-  wall.translate(0, 1.5, 0);
-  colliders.add(new THREE.Mesh(wall));
+  colliders.add(new THREE.Mesh(new THREE.CylinderGeometry(R - 0.05, R - 0.05, 4, 96, 1, true).translate(center.x, center.y + 1.5, center.z)));
 
   // ---- Hull (underside): stepped tiers mapped on the trim sheet's large dark panel.
   const tiers: [number, number, number, number][] = [
-    [RO, -0.45, RO - 0.9, -1.35],
-    [RO - 0.9, -1.35, 27.2, -1.95],
-    [27.2, -1.95, 26.4, -4.4],
-    [26.4, -4.4, 20.8, -5.1],
-    [20.8, -5.1, 19.9, -8.3],
-    [19.9, -8.3, 13.6, -9.4],
-    [13.6, -9.4, 12.6, -13.2],
-    [12.6, -13.2, 6.8, -15.8],
-    [6.8, -15.8, 3.2, -21.0],
-    [3.2, -21.0, 1.2, -23.4],
+    [32.2, -0.45, 31.3, -1.35], [31.3, -1.35, 27.2, -1.95], [27.2, -1.95, 26.4, -4.4], [26.4, -4.4, 20.8, -5.1],
+    [20.8, -5.1, 19.9, -8.3], [19.9, -8.3, 13.6, -9.4], [13.6, -9.4, 12.6, -13.2], [12.6, -13.2, 6.8, -15.8],
+    [6.8, -15.8, 3.2, -21.0], [3.2, -21.0, 1.2, -23.4],
   ];
   tiers.forEach(([r0, y0, r1, y1], i) => {
+    const ys = (y: number) => (y > -0.5 ? y : y * s);
     const steep = Math.abs(y1 - y0) > Math.abs(r1 - r0);
-    const g = band(r0, y0, r1, y1, { segments: 144, tile: steep ? 6 : 8, vRange: steep ? [0.515, 0.915] : [0.36, 0.47], flip: true });
-    add(g, hullMat);
-    if (steep && i < 8) {
-      // Seam light at the bottom edge of each vertical tier.
-      add(band(r1 + 0.03, y1 + 0.18, r1 + 0.03, y1 + 0.26, { segments: 144 }), i % 4 === 2 ? glowSoft : glow);
-    }
+    add(band(r0 * s, ys(y0), r1 * s, ys(y1), { segments: Math.round(144 * Math.max(0.5, s)), tile: steep ? 6 : 8, vRange: steep ? [0.515, 0.915] : [0.36, 0.47], flip: true }), hullMat);
+    if (steep && i < 8) add(band(r1 * s + 0.03, ys(y1) + 0.18, r1 * s + 0.03, ys(y1) + 0.26, { segments: 120 }), i % 4 === 2 ? glowSoft : glow);
   });
-  // Gravity core under the tip.
-  const coreMat = new THREE.MeshStandardMaterial({ name: 'gravity-core', color: '#000000', emissive: PALETTE.cyan, emissiveIntensity: 4 });
   for (const [m, geos] of buckets) {
-    const merged = mergeGeometries(geos.map((g) => normalizeForMerge(g)), false)!;
-    const mesh = new THREE.Mesh(merged, m);
+    const mesh = new THREE.Mesh(mergeGeometries(geos.map((g) => normalizeForMerge(g)), false)!, m);
     mesh.receiveShadow = m !== hullMat;
     mesh.name = `island:${m.name}`;
     group.add(mesh);
   }
-  const core = new THREE.Mesh(new THREE.SphereGeometry(1.25, 32, 16), coreMat);
-  core.position.y = -23.6;
+  // Gravity core under the tip.
+  const coreMat = new THREE.MeshStandardMaterial({ name: 'gravity-core', color: '#000000', emissive: PALETTE.cyan, emissiveIntensity: 4 });
+  const core = new THREE.Mesh(new THREE.SphereGeometry(1.25 * s, 32, 16), coreMat);
+  core.position.set(center.x, center.y - 23.6 * s, center.z);
   group.add(core);
-  const coreRing = new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.08, 8, 64).rotateX(Math.PI / 2), coreMat);
-  coreRing.position.y = -22.2;
+  const coreRing = new THREE.Mesh(new THREE.TorusGeometry(2.6 * s, 0.08, 8, 64).rotateX(Math.PI / 2), coreMat);
+  coreRing.position.set(center.x, center.y - 22.2 * s, center.z);
   group.add(coreRing);
 
   return {
@@ -214,7 +230,7 @@ export function createIsland(lib: MaterialLibrary) {
     update(t: number) {
       deckUniforms.uTime.value = t;
       coreRing.rotation.y = t * 0.4;
-      coreRing.position.y = -22.2 + Math.sin(t * 0.8) * 0.25;
+      coreRing.position.y = center.y + (-22.2 + Math.sin(t * 0.8) * 0.25) * s;
       coreMat.emissiveIntensity = 3.6 + Math.sin(t * 2.0) * 0.6;
     },
   };

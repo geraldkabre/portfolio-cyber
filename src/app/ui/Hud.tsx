@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { bridge } from '../bridge';
 import { useUI } from '../store';
 import type { QualityLevel } from '../../engine/quality';
+import { ambient } from '../../audio/AmbientMusic';
 
 export function Hud() {
   const phase = useUI((s) => s.phase);
@@ -27,7 +28,10 @@ export function Hud() {
       </div>
 
       <div className="cv-hud-actions">
+        <button type="button" className="cv-pill-btn" onClick={() => bridge.game?.openPanel('map')} aria-label="Campus map (M)">Map</button>
+        <AudioControls />
         <QualityPicker />
+        <a className="cv-pill-btn" href="/recruiter/" title="The whole portfolio on one page">Recruiter</a>
         <button type="button" className="cv-icon-btn" onClick={() => bridge.game?.openPanel('help')} aria-label="Controls and credits">?</button>
       </div>
 
@@ -38,7 +42,7 @@ export function Hud() {
         </div>
       )}
 
-      {!locked && !panel && <div className="cv-look-hint">Click the scene to look around with the mouse</div>}
+      {!locked && !panel && <div className="cv-look-hint">Click the scene to look around with the mouse · M for the map</div>}
 
       <div className={`cv-controls ${hintsVisible ? '' : 'is-faded'}`} onMouseEnter={() => setHintsVisible(true)}>
         <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span>
@@ -46,10 +50,34 @@ export function Hud() {
         <span className={walk ? 'is-on' : ''}><kbd>C</kbd> walk {walk ? 'on' : 'off'}</span>
         <span><kbd>Space</kbd> jump</span>
         <span><kbd>E</kbd> interact</span>
+        <span><kbd>M</kbd> map</span>
         <span><kbd>H</kbd> help</span>
       </div>
 
       {debug && <DebugOverlay />}
+    </div>
+  );
+}
+
+/** Tiny external store over the audio engine settings (so the HUD re-renders when they change). */
+const audioListeners = new Set<() => void>();
+const audioStore = {
+  subscribe: (l: () => void) => { audioListeners.add(l); return () => audioListeners.delete(l); },
+  get: () => ambient.settings,
+  set: (patch: Partial<typeof ambient.settings>) => { ambient.set(patch); audioListeners.forEach((l) => l()); },
+};
+
+function AudioControls() {
+  const s = useSyncExternalStore(audioStore.subscribe, audioStore.get);
+  return (
+    <div className="cv-audio" role="group" aria-label="Sound">
+      <button type="button" aria-pressed={s.music} className={s.music ? 'is-on' : ''} onClick={() => audioStore.set({ music: !s.music })} title="Music on / off">
+        ♪ <span>{s.music ? 'Music' : 'Muted'}</span>
+      </button>
+      <input type="range" min={0} max={1} step={0.05} value={s.volume} aria-label="Volume" onChange={(e) => audioStore.set({ volume: Number(e.target.value) })} />
+      <button type="button" aria-pressed={s.sfx} className={s.sfx ? 'is-on' : ''} onClick={() => audioStore.set({ sfx: !s.sfx })} title="Sound effects on / off">
+        SFX
+      </button>
     </div>
   );
 }

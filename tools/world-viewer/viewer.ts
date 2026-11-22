@@ -15,8 +15,8 @@ const loadMs = performance.now() - t0;
 if (q.has('colliders')) engine.scene.add(world.collision.debugMesh());
 
 const shots = (q.get('shots') ?? 'hero:0,4.5,38:0,9,0').split(';').map((s) => {
-  const [name, p, t] = s.split(':');
-  return { name, p: p.split(',').map(Number), t: t.split(',').map(Number) };
+  const [name, p, t, active] = s.split(':');
+  return { name, p: p.split(',').map(Number), t: t.split(',').map(Number), active: active ?? 'command' };
 });
 const time = Number(q.get('t') ?? 4);
 const cam = engine.camera;
@@ -27,6 +27,7 @@ function setShot(i: number) {
   const s = shots[i];
   cam.position.set(s.p[0], s.p[1], s.p[2]);
   cam.lookAt(s.t[0], s.t[1], s.t[2]);
+  if (world.active !== s.active) world.setActive(s.active);
 }
 // Warm up: advance simulated time so animations/effects are in a representative state.
 setShot(0);

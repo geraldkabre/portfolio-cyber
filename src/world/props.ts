@@ -8,7 +8,7 @@ const DEG = Math.PI / 180;
 
 /**
  * Set dressing with a purpose: arrival pad (spawn + selection pedestals), the avenue that leads to the gate,
- * lanterns along the plaza ring, a technical uplink yard (north), an observation deck (west), hull equipment
+ * lanterns along the plaza ring, a technical uplink yard (north), hull equipment
  * under the rim, patrolling sentinel drones and floating data motes.
  */
 export function createProps(mega: Kit, cyber: Kit, particles: number) {
@@ -50,7 +50,8 @@ export function createProps(mega: Kit, cyber: Kit, particles: number) {
 
   // ---------------- Lanterns along the plaza ring (skip avenue, gate and portal axes)
   for (let deg = 0; deg < 360; deg += 22.5) {
-    if ([90, 0, 270, 180].some((d) => Math.abs(((deg - d + 540) % 360) - 180) < 12)) continue;
+    // Skip the avenue / north yard axes and the six portal axes (portal azimuth - 90 in this angle convention).
+    if ([90, 270, -60, 0, 50, 130, 180, 240].some((d) => Math.abs(((deg - d + 540) % 360) - 180) < 13)) continue;
     const a = deg * DEG;
     const r = 27.6;
     staticGroup.add(place(mega, 'Prop_Light_Floor', { x: Math.cos(a) * r, y: 0, z: Math.sin(a) * r, rotY: Math.PI / 2 - a, scale: 1.3 }));
@@ -71,19 +72,7 @@ export function createProps(mega: Kit, cyber: Kit, particles: number) {
   yardCollider.position.set(0, 2, -21.8);
   colliders.add(yardCollider);
 
-  // ---------------- West observation deck: screens facing the view, consoles
-  const deck = new THREE.Group();
-  deck.position.set(-26.2, 0, 0);
-  deck.rotation.y = Math.PI / 2;
-  for (const [x, s] of [[-2.6, 1.6], [0, 1.9], [2.6, 1.6]] as const) {
-    deck.add(place(cyber, 'TV_2', { x, y: 0, z: 0, rotY: Math.PI, scale: s }));
-  }
-  deck.add(place(cyber, 'Computer', { x: -1.3, y: 0, z: -1.4, rotY: Math.PI, scale: 1.3 }));
-  deck.add(place(cyber, 'Computer', { x: 1.3, y: 0, z: -1.4, rotY: Math.PI, scale: 1.3 }));
-  staticGroup.add(deck);
-  const deckCollider = new THREE.Mesh(new THREE.BoxGeometry(2.2, 3, 8));
-  deckCollider.position.set(-26.4, 1.5, 0);
-  colliders.add(deckCollider);
+  // (The west observation deck was replaced by the Research Institute portal.)
 
   // ---------------- Hull equipment under the rim (seen from the edges and from the outpost)
   const hullItems = ['AC', 'Antenna_2', 'AC_Stacked', 'Cable_Long', 'Support_Long', 'Cable_Thick', 'AC_Side', 'Antenna_2'];

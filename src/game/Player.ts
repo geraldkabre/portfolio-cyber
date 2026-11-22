@@ -40,6 +40,11 @@ const dampAngle = (from: number, to: number, rate: number, dt: number) => {
  */
 export class Player {
   readonly position = new THREE.Vector3();
+  /** State at the previous fixed step (render interpolation). */
+  private readonly prevPosition = new THREE.Vector3();
+  private prevYaw = 0;
+  /** Interpolated position used for rendering and the camera. */
+  readonly renderPosition = new THREE.Vector3();
   readonly velocity = new THREE.Vector3();
   yaw = 0;
   grounded = true;
@@ -73,7 +78,12 @@ export class Player {
     this.yaw = yaw;
     this.grounded = true;
     this.airTime = 0;
-    this.syncRoot();
+    // A teleport is not a fall: no landing animation on arrival (islands sit at different heights).
+    this.fallStartY = p.y;
+    this.landTimer = 0;
+    this.prevPosition.copy(p);
+    this.prevYaw = yaw;
+    this.present(1);
   }
 
   jump() {
@@ -84,7 +94,17 @@ export class Player {
     return Math.hypot(this.velocity.x, this.velocity.z);
   }
 
+  /** Variable-step convenience (cutscenes): one simulation step + animation + presentation. */
   update(dt: number, intent: MoveIntent, cameraYaw: number) {
+    this.simulate(dt, intent, cameraYaw);
+    this.animate(dt);
+    this.present(1);
+  }
+
+  /** One fixed physics step (the game runs it at 60 Hz, independent of the frame rate). */
+  simulate(dt: number, intent: MoveIntent, cameraYaw: number) {
+    this.prevPosition.copy(this.position);
+    this.prevYaw = this.yaw;
     const c = this.config;
     // Camera-relative intent.
     _fwd.set(-Math.sin(cameraYaw), 0, -Math.cos(cameraYaw));
@@ -138,8 +158,15 @@ export class Player {
       this.airTime += dt;
     }
     this.landTimer = Math.max(0, this.landTimer - dt);
-    this.animate(dt);
-    this.syncRoot();
+  }
+
+  /** Places the rig between the last two physics states (alpha in [0, 1]): smooth at any frame rate. */
+  present(alpha: number) {
+    this.renderPosition.lerpVectors(this.prevPosition, this.position, alpha);
+    let d = this.yaw - this.prevYaw;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    this.rig.position.copy(this.renderPosition);
+    this.rig.rotation.set(0, this.prevYaw + d * alpha, 0);
   }
 
   private step(dt: number) {
@@ -166,7 +193,8 @@ export class Player {
     }
   }
 
-  private animate(dt: number) {
+  /** Animation state machine + mixer + spring bones (per rendered frame). */
+  animate(dt: number) {
     const hs = this.horizontalSpeed;
     const g = this.gait;
     let next: Gait;
@@ -193,8 +221,4 @@ export class Player {
     this.character.update(dt);
   }
 
-  private syncRoot() {
-    this.rig.position.copy(this.position);
-    this.rig.rotation.set(0, this.yaw, 0);
-  }
 }

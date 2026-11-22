@@ -1,7 +1,21 @@
 import * as THREE from 'three';
 import {
-  BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, ToneMappingEffect, ToneMappingMode, VignetteEffect,
+  BloomEffect, Effect, EffectComposer, EffectPass, RenderPass, SMAAEffect, ToneMappingEffect, ToneMappingMode, VignetteEffect,
 } from 'postprocessing';
+
+/**
+ * Replaces NaN / Inf pixels (and clamps extreme HDR values) before the bloom: with mipmap blur a single invalid
+ * pixel would otherwise spread over the whole frame and turn it black.
+ */
+class SanitizeEffect extends Effect {
+  constructor() {
+    super('Sanitize', `void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+      vec3 c = inputColor.rgb;
+      bool bad = any(isnan(c)) || any(isinf(c)) || any(notEqual(c, c));
+      outputColor = vec4(bad ? vec3(0.0) : min(c, vec3(64.0)), inputColor.a);
+    }`);
+  }
+}
 import { QUALITY, type QualityLevel, type QualityPreset } from './quality';
 
 export type Updater = (dt: number, time: number) => void;
@@ -41,7 +55,7 @@ export class Engine {
   /** Multiplier on the pixel ratio, driven by adaptive resolution (0.6 .. 1). */
   renderScale = 1;
   autoResolution = true;
-  private adapt = { acc: 0, frames: 0, timer: 0, good: 0 };
+  private adapt = { acc: 0, frames: 0, timer: 0, good: 0, cooldown: 0 };
 
   constructor(readonly canvas: HTMLCanvasElement, level: QualityLevel) {
     this.quality = QUALITY[level];
@@ -104,6 +118,15 @@ export class Engine {
     this.bloom = null;
     if (q.bloom) {
       this.bloom = new BloomEffect({ mipmapBlur: true, luminanceThreshold: 0.62, luminanceSmoothing: 0.22, intensity: 1.15, radius: 0.72, levels: 6, resolutionScale: 0.5 });
+      // Sanitize the bloom input: with mipmap blur one NaN/Inf pixel would otherwise spread over the whole frame.
+      const lm = this.bloom.luminanceMaterial;
+      const fetch = 'vec4 texel=texture2D(inputBuffer,vUv);';
+      if (lm.fragmentShader.includes(fetch)) {
+        lm.fragmentShader = lm.fragmentShader.replace(fetch, fetch + 'texel.rgb=(any(isnan(texel.rgb))||any(isinf(texel.rgb))||any(notEqual(texel.rgb,texel.rgb)))?vec3(0.0):min(texel.rgb,vec3(64.0));');
+        lm.needsUpdate = true;
+      } else {
+        this.composer.addPass(new EffectPass(this.camera, new SanitizeEffect()));
+      }
       effects.push(this.bloom);
     }
     effects.push(new VignetteEffect({ offset: 0.28, darkness: 0.62 }));
@@ -181,16 +204,18 @@ export class Engine {
    */
   private adaptResolution(raw: number) {
     const a = this.adapt;
-    a.acc += raw * 1000; a.frames++; a.timer += raw;
-    if (a.timer < 1) return;
+    // Hysteresis: each change reallocates the render targets (a visible hitch), so changes are rare and never oscillate.
+    a.acc += raw * 1000; a.frames++; a.timer += raw; a.cooldown = Math.max(0, a.cooldown - raw);
+    if (a.timer < 1.5) return;
     const avg = a.acc / a.frames;
-    if (avg > 20 && this.renderScale > 0.6) {
+    if (avg > 21 && this.renderScale > 0.6) {
       this.renderScale = Math.max(0.6, +(this.renderScale - 0.1).toFixed(2));
       a.good = 0;
+      a.cooldown = 12;
       this.resize();
-    } else if (avg < 15.5) {
+    } else if (avg < 13.5 && a.cooldown === 0) {
       a.good += a.timer;
-      if (a.good > 4 && this.renderScale < 1) { this.renderScale = Math.min(1, +(this.renderScale + 0.05).toFixed(2)); a.good = 0; this.resize(); }
+      if (a.good > 8 && this.renderScale < 1) { this.renderScale = Math.min(1, +(this.renderScale + 0.05).toFixed(2)); a.good = 0; this.resize(); }
     } else a.good = 0;
     a.acc = 0; a.frames = 0; a.timer = 0;
   }

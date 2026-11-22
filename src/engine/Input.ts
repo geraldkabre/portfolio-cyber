@@ -3,10 +3,10 @@
  * - Keys are tracked by `code` (layout independent: KeyW is the key at the W position, also Z on AZERTY).
  * - Mouse look uses pointer lock when available, with a click-and-drag fallback (and for automated tests).
  */
-type Action = 'interact' | 'jump' | 'toggleWalk' | 'escape' | 'help' | 'debug';
+type Action = 'interact' | 'jump' | 'toggleWalk' | 'escape' | 'help' | 'debug' | 'map';
 
 const ACTIONS: Record<string, Action> = {
-  KeyE: 'interact', Enter: 'interact', Space: 'jump', KeyC: 'toggleWalk', Escape: 'escape', KeyH: 'help', F3: 'debug',
+  KeyE: 'interact', Enter: 'interact', Space: 'jump', KeyC: 'toggleWalk', Escape: 'escape', KeyH: 'help', F3: 'debug', KeyM: 'map',
 };
 
 export class Input {
@@ -16,6 +16,8 @@ export class Input {
   private lookY = 0;
   private wheel = 0;
   private dragging = false;
+  /** performance.now() of the last mouse-look movement (camera auto-follow waits for the mouse to rest). */
+  lastLookAt = 0;
   enabled = false;
   /** Multiplier applied to mouse deltas (radians per pixel). */
   sensitivity = 0.0022;
@@ -122,6 +124,7 @@ export class Input {
     if (this.pointerLocked || this.dragging) {
       this.lookX += e.movementX;
       this.lookY += e.movementY;
+      if (e.movementX || e.movementY) this.lastLookAt = performance.now();
     }
   };
 

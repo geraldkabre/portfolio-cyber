@@ -24,7 +24,7 @@ const hold = async (keys, ms) => { for (const k of keys) await page.keyboard.dow
 
 try {
   const t0 = Date.now();
-  await page.goto(BASE + '/', { waitUntil: 'load', timeout: 120000 });
+  await page.goto(BASE + '/?mode=immersive', { waitUntil: 'load', timeout: 120000 });
   await page.waitForTimeout(400);
   await shot('00-loading');
   await page.waitForFunction(() => window.__cv && window.__cv.state().phase === 'select', null, { timeout: 180000 });
@@ -129,7 +129,7 @@ try {
   await page.keyboard.press('KeyE');
   await sleep(600);
   s = await state();
-  check('E opens the operator dossier', s.panel === 'dossier');
+  check('E opens the operator dossier (profile panel)', s.panel === 'profile');
   await shot('10-dossier');
   await page.keyboard.press('Escape');
   await sleep(400);
@@ -145,32 +145,77 @@ try {
   await shot('11-camera-collision');
   await page.evaluate(() => window.__cv.setCamera(0, 0.32, 4.6));
 
-  // Portal: east gate -> outpost.
-  await page.evaluate(() => window.__cv.teleport(21.5, 0, 0, Math.PI / 2));
+  // Portal ring: the east portal leads to the Identity & Academy District.
+  await page.evaluate(() => window.__cv.teleport(19.5, 0, 0, Math.PI / 2));
   await sleep(400);
   await shot('12-portal-approach');
-  await hold(['KeyW'], 2200);
-  await sleep(800);
+  await hold(['KeyW'], 2400);
+  await sleep(900);
   s = await state();
-  check('portal teleports to the Academy outpost', s.position[0] > 80 && Math.abs(s.yaw - Math.PI / 2) < 0.2, `pos=${s.position} location=${s.location}`);
-  await shot('13-outpost');
-  await page.evaluate(() => window.__cv.teleport(97.4, -6.89, -15.9, -0.55 + Math.PI));
+  let active = await page.evaluate(() => window.__cv.active());
+  check('Nexus portal teleports to the Academy district', active === 'academy', `active=${active} pos=${s.position} location=${s.location}`);
+  await shot('13-district-academy');
+  const terms = await page.evaluate(() => window.__cv.terminals());
+  const t = terms.find((x) => x.id === 'academy');
+  await page.evaluate(([x, y, z]) => window.__cv.teleport(x + 1.2, y, z + 0.4, Math.PI), t.position);
   await sleep(500);
   s = await state();
-  check('district brief prompt on the outpost', !!s.prompt, s.prompt ?? 'none');
+  check('district terminal prompt', !!s.prompt, s.prompt ?? 'none');
   await page.keyboard.press('KeyE');
-  await sleep(500);
+  await sleep(600);
   s = await state();
-  check('E opens the district brief', s.panel === 'brief');
-  await shot('14-brief');
+  check('E opens the Academy panel (education & languages)', s.panel === 'academy');
+  await shot('14-panel-academy');
   await page.keyboard.press('Escape');
   await sleep(300);
-  await page.evaluate(() => window.__cv.teleport(95.0, -6.89, -14.1, -Math.PI / 2));
-  await sleep(300);
-  await hold(['KeyW'], 2000);
-  await sleep(800);
+  // Return: from the arrival point walk back (S) into the return portal behind the operator.
+  await page.evaluate(() => window.__cv.travel('academy'));
+  await sleep(1200);
+  await hold(['KeyS'], 2600);
+  await sleep(900);
+  active = await page.evaluate(() => window.__cv.active());
   s = await state();
-  check('return portal brings the operator back to Nexus Prime', Math.hypot(s.position[0], s.position[2]) < 31, `pos=${s.position}`);
+  check('return portal brings the operator back to Nexus Prime', active === 'command' && Math.hypot(s.position[0], s.position[2]) < 31, `active=${active} pos=${s.position}`);
+
+  // Campus map + fast travel.
+  await page.keyboard.press('KeyM');
+  await sleep(500);
+  s = await state();
+  check('M opens the campus map', s.panel === 'map');
+  await shot('15-map');
+  await page.locator('.cv-map-list li', { hasText: 'Digital Proof Vault' }).locator('button').click();
+  await sleep(1300);
+  active = await page.evaluate(() => window.__cv.active());
+  s = await state();
+  check('map fast travel reaches the Digital Proof Vault', active === 'vault' && s.panel === null, `active=${active}`);
+  await shot('16-district-vault');
+  const v = (await page.evaluate(() => window.__cv.terminals())).find((x) => x.id === 'vault');
+  await page.evaluate(([x, y, z]) => window.__cv.teleport(x + 1.2, y, z + 0.4, Math.PI), v.position);
+  await sleep(500);
+  await page.keyboard.press('KeyE');
+  await sleep(700);
+  s = await state();
+  const gh = await page.locator('.cv-panel a[href*="github.com/geraldkabre/portfolio-cyber/blob/main/docs/certifications"]').count();
+  check('Vault panel lists certifications with GitHub links', s.panel === 'vault' && gh >= 6, `panel=${s.panel} github links=${gh}`);
+  await shot('17-panel-vault');
+  await page.keyboard.press('Escape');
+  await sleep(300);
+  for (const id of ['soc', 'missions', 'research', 'comms']) {
+    await page.evaluate((d) => window.__cv.travel(d), id);
+    await sleep(1200);
+    const tt = (await page.evaluate(() => window.__cv.terminals())).find((x) => x.id === id);
+    await page.evaluate(([x, y, z]) => window.__cv.teleport(x + 1.2, y, z + 0.4, Math.PI), tt.position);
+    await sleep(400);
+    await shot(`18-district-${id}`);
+    await page.keyboard.press('KeyE');
+    await sleep(600);
+    s = await state();
+    check(`${id} terminal opens its panel`, s.panel === id, `panel=${s.panel}`);
+    await page.keyboard.press('Escape');
+    await sleep(250);
+  }
+  await page.evaluate(() => window.__cv.travel('command'));
+  await sleep(1300);
 
   // Performance: 12 s of scripted movement around the plaza, frame times measured in the page.
   await page.evaluate(() => window.__cv.teleport(0, 0, 24, Math.PI));

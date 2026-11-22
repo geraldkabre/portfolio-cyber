@@ -2,19 +2,14 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLSL_COMMON } from './glsl';
 import { beamMaterial, streamMaterial, textTexture } from './fx';
-import { PALETTE } from './palette';
 import { DISTRICTS } from '../content/profile';
+import { SITES as CAMPUS } from './campus';
 
 const DEG = Math.PI / 180;
 
-/** Distant district islands: placement around Nexus Prime (azimuth from north, clockwise). */
-const SITES: Record<string, { az: number; dist: number; y: number; color: string; kind: 'campus' | 'dome' | 'stack' | 'spires' | 'vault' | 'tower' }> = {
-  academy: { az: 80, dist: 205, y: -6, color: PALETTE.cyan, kind: 'campus' },
-  soc: { az: 32, dist: 265, y: 12, color: PALETTE.eblue, kind: 'dome' },
-  missions: { az: -28, dist: 235, y: -4, color: PALETTE.violet, kind: 'stack' },
-  research: { az: -86, dist: 215, y: 16, color: PALETTE.ice, kind: 'spires' },
-  vault: { az: -142, dist: 270, y: -12, color: PALETTE.violet, kind: 'vault' },
-  comms: { az: 148, dist: 245, y: 6, color: PALETTE.cyan, kind: 'tower' },
+/** Silhouette style per district (the detailed islands are built in campusWorld.ts at the same sites). */
+const KIND: Record<string, 'campus' | 'dome' | 'stack' | 'spires' | 'vault' | 'tower'> = {
+  academy: 'campus', soc: 'dome', missions: 'stack', research: 'spires', vault: 'vault', comms: 'tower',
 };
 
 /** Night silhouette material: dark navy, procedural lit window bands tinted by a per-vertex accent colour. */
@@ -101,43 +96,56 @@ function tint(g: THREE.BufferGeometry, name: string, color: THREE.Color) {
 export function createDistricts() {
   const group = new THREE.Group();
   group.name = 'districts';
-  const silhouettes: THREE.BufferGeometry[] = [], beacons: THREE.BufferGeometry[] = [], beams: THREE.BufferGeometry[] = [], streams: THREE.BufferGeometry[] = [];
+  const beacons: THREE.BufferGeometry[] = [], beams: THREE.BufferGeometry[] = [], streams: THREE.BufferGeometry[] = [];
   const origin = new THREE.Vector3(0, 32.5, 0);
-  for (const d of DISTRICTS) {
-    const site = SITES[d.id];
-    if (!site) continue;
+  const material = silhouetteMaterial();
+  for (const site of CAMPUS) {
+    const d = DISTRICTS.find((x) => x.id === site.id)!;
     const accent = new THREE.Color(site.color);
     const pos = new THREE.Vector3(Math.sin(site.az * DEG) * site.dist, site.y, -Math.cos(site.az * DEG) * site.dist);
-    const g = buildDistrict(site.kind);
+    // Silhouette at the scale of the real district island (hidden while the operator is on it).
+    const g = tint(buildDistrict(KIND[site.id]).scale(0.55, 0.55, 0.55), 'aAccent', accent);
     g.computeBoundingBox();
     const topY = pos.y + g.boundingBox!.max.y;
-    silhouettes.push(tint(g.translate(pos.x, pos.y, pos.z), 'aAccent', accent));
-    const top = new THREE.Vector3(pos.x, topY + 3, pos.z);
-    beacons.push(tint(new THREE.SphereGeometry(1.6, 16, 8).translate(top.x, top.y, top.z), 'color', accent.clone().multiplyScalar(4)));
-    beams.push(tint(new THREE.CylinderGeometry(0.8, 0.5, 180, 12, 1, true).translate(top.x, top.y + 90, top.z), 'color', accent));
+    const sil = new THREE.Mesh(g, material);
+    sil.position.copy(pos);
+    sil.name = `silhouette-${site.id}`;
+    sil.userData.noCollide = true;
+    group.add(sil);
+    const top = new THREE.Vector3(pos.x, Math.max(topY, pos.y + 14) + 3, pos.z);
+    beacons.push(tint(new THREE.SphereGeometry(1.2, 16, 8).translate(top.x, top.y, top.z), 'color', accent.clone().multiplyScalar(4)));
+    beams.push(tint(new THREE.CylinderGeometry(0.6, 0.4, 180, 12, 1, true).translate(top.x, top.y + 90, top.z), 'color', accent));
     const mid = origin.clone().lerp(top, 0.5);
-    mid.y += 26 + origin.distanceTo(top) * 0.08;
-    const tube = new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(origin, mid, top), 120, 0.22, 6, false);
-    streams.push(tint(tube, 'color', new THREE.Color(d.id === 'academy' ? PALETTE.cyan : PALETTE.eblue)));
-    // Floating label.
+    mid.y += 22 + origin.distanceTo(top) * 0.08;
+    streams.push(tint(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(origin, mid, top), 120, 0.22, 6, false), 'color', accent));
     const tex = textTexture([
       { text: d.name.toUpperCase(), size: 64, color: '#e2f7ff', weight: 700, spacing: 8 },
-      { text: d.status === 'online' ? 'ONLINE' : 'UNDER CONSTRUCTION', size: 36, color: d.status === 'online' ? '#6ff3ff' : '#b39dff', weight: 600, spacing: 10 },
+      { text: d.role.toUpperCase(), size: 36, color: '#9fe6ff', weight: 600, spacing: 8 },
     ], { width: 1600, height: 260 });
     const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, opacity: 0.85, blending: THREE.AdditiveBlending }));
-    label.scale.set(58, 58 * (260 / 1600), 1);
-    label.position.set(pos.x, topY + 14, pos.z);
+    label.scale.set(46, 46 * (260 / 1600), 1);
+    label.position.set(pos.x, top.y + 9, pos.z);
+    label.name = `label-${site.id}`;
     group.add(label);
   }
-  const mesh = (geos: THREE.BufferGeometry[], material: THREE.Material, name: string) => {
-    const m = new THREE.Mesh(mergeGeometries(geos, false)!, material);
+  const mesh = (geos: THREE.BufferGeometry[], mat: THREE.Material, name: string) => {
+    const m = new THREE.Mesh(mergeGeometries(geos, false)!, mat);
     m.name = name;
     m.userData.noCollide = true;
     group.add(m);
   };
-  mesh(silhouettes, silhouetteMaterial(), 'district-silhouettes');
   mesh(beacons, new THREE.MeshBasicMaterial({ vertexColors: true, fog: false }), 'district-beacons');
   mesh(beams, beamMaterial('#ffffff', 0.55, true), 'district-beams');
   mesh(streams, streamMaterial('#ffffff', 0.85, 0.05, true), 'data-streams');
-  return { group };
+  return {
+    group,
+    /** Hides the silhouette and label of the district the operator stands on. */
+    setActive(id: string) {
+      for (const site of CAMPUS) {
+        const on = site.id !== id;
+        group.getObjectByName(`silhouette-${site.id}`)!.visible = on;
+        group.getObjectByName(`label-${site.id}`)!.visible = on;
+      }
+    },
+  };
 }

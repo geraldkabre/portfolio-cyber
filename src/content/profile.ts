@@ -1,55 +1,79 @@
 /**
- * Professional content of CYBERVERSE (3D campus + Recruiter Mode + CV).
+ * Professional content of CYBERVERSE (3D campus + Recruiter Mode). Single source of truth.
  *
- * Sources, in order: the owner's CYBERVERSE brief (identity, education, programmes, links) and the repository
- * documentation (README.md, docs/projects, docs/certifications, docs/ctf/rootme). Nothing may be invented:
- * no grades, no class rankings, no dates or results that are not in those sources. Work in progress is labelled.
+ * Sources: the owner's profile notes (22/11/2026) and the repository documentation (README.md, docs/projects,
+ * docs/certifications, docs/ctf/rootme). Nothing may be invented: no grades, no class rankings. Work in progress is
+ * labelled. Every section links to its page on GitHub.
  *
  * The contact e-mail is not stored in the source: it comes from the build environment (VITE_CONTACT_EMAIL,
  * see .env.example). When it is not set, every e-mail link is simply hidden.
  */
-const REPO = 'https://github.com/geraldkabre/portfolio-cyber/blob/main';
+const BLOB = 'https://github.com/geraldkabre/portfolio-cyber/blob/main';
 const contactEmail = String(import.meta.env.VITE_CONTACT_EMAIL ?? '').trim();
+
+export const GITHUB = {
+  profile: 'https://github.com/geraldkabre',
+  repository: 'https://github.com/geraldkabre/portfolio-cyber',
+  readme: `${BLOB}/README.md`,
+  skills: `${BLOB}/README.md#technical-skills`,
+  projects: `${BLOB}/docs/projects/README.md`,
+  certifications: `${BLOB}/docs/certifications/README.md`,
+  rootme: `${BLOB}/docs/ctf/rootme/README.md`,
+  thesisPage: `${BLOB}/docs/projects/pfsense-umet-burkina/README.md`,
+  thesisPdf: `${BLOB}/docs/projects/pfsense-umet-burkina/thesis-pfsense-umet-burkina.pdf`,
+} as const;
 
 export const PROFILE = {
   name: 'Gérald Kabré',
   title: 'Cybersecurity Engineer',
-  focus: 'Network Security and Software Development',
+  focus: 'Network Security & Software Development',
   location: 'Burkina Faso',
+  flag: '🇧🇫',
+  current: 'Currently studying Mandarin Chinese at Qingdao Binhai University, China (since March 2026)',
   summary:
     'Cybersecurity engineer from Burkina Faso, focused on network security and software development. ' +
-    'I design and secure network infrastructures — segmentation, filtering, intrusion detection and access control — ' +
-    'and I practise offensive security through documented CTF challenges.',
+    'I design and secure network infrastructures — segmentation, filtering, intrusion detection, access control — ' +
+    'and I practise offensive and defensive security on Root-Me.',
   languages: [
     { name: 'French', level: 'Native' },
-    { name: 'English', level: 'B2' },
-    { name: 'Mandarin', level: 'Studies at Qingdao Binhai University' },
+    { name: 'English', level: 'B2 (Duolingo English Test 110)' },
+    { name: 'Mandarin Chinese', level: 'Learning — Qingdao Binhai University' },
   ],
   links: {
-    github: 'https://github.com/geraldkabre',
+    github: GITHUB.profile,
     rootme: 'https://www.root-me.org/godboy?lang=en#d937a1e09140fb65765a9e793f4c84a2',
+    rootmeHandle: 'godboy',
     email: contactEmail,
-    repository: 'https://github.com/geraldkabre/portfolio-cyber',
+    repository: GITHUB.repository,
   },
-  /** Drop a professional photo at this path to replace the monogram everywhere (Recruiter Mode, dossier, CV). */
+  /** Drop a professional photo at this path to replace the monogram everywhere (Recruiter Mode, dossier). */
   photo: '/assets/profile/photo.jpg',
-  cv: '/assets/cv/Gerald-Kabre-CV.pdf',
 } as const;
 
 export const EDUCATION = [
-  { title: 'Bachelor of Engineering — Cybersecurity of Computer & Industrial Systems', school: 'Dadoh University' },
-  { title: 'Mandarin studies', school: 'Qingdao Binhai University' },
-  { title: 'Engineering preparatory classes', school: '2iE' },
+  { period: 'Since March 2026', title: 'Mandarin Chinese', school: 'Qingdao Binhai University, China', current: true },
+  { period: '2024 – 2026', title: 'Bachelor of Engineering — Cybersecurity of Computer & Industrial Systems', school: 'Dadoh University' },
+  { period: '2022 – 2024', title: 'Engineering preparatory classes — Engineering Sciences', school: '2iE (CTI-accredited)' },
+  { period: '2022', title: 'Baccalauréat — Experimental Sciences', school: 'Sacred Heart College, Dakar, Senegal' },
 ] as const;
 
-/** README.md "Technical Skills" + software stack named in the brief (Django, Spring Boot, Angular). */
-export const SKILLS = [
-  { area: 'Network security', items: ['pfSense', 'VLAN segmentation', 'Firewall policy', 'NAT', 'Dual-WAN', 'RSTP', 'Port Security'] },
-  { area: 'Detection and filtering', items: ['Suricata IDS/IPS', 'SquidGuard', 'pfBlockerNG', 'Centralized logging'] },
-  { area: 'Access control', items: ['WPA-Enterprise', 'IEEE 802.1X', 'RADIUS'] },
-  { area: 'Offensive security', items: ['Burp Suite', 'curl', 'Browser DevTools', 'Web vulnerability analysis (CWE)'] },
-  { area: 'Systems', items: ['Linux', 'VMware Workstation', 'Cisco devices'] },
-  { area: 'Software development', items: ['Python / Django', 'Java / Spring Boot', 'Angular'] },
+export const EXPERIENCE = [
+  {
+    title: 'Switch Maker',
+    detail: 'Intensive three-month development programme — Spring Boot and Angular.',
+    tags: ['Spring Boot', 'Angular', 'Java'],
+  },
+  {
+    title: 'E-commerce web application',
+    detail: 'Built with Django, HTML/CSS and Git/GitHub, deployed on Render. Secured with strengthened authentication, input validation and CSRF protection.',
+    tags: ['Django', 'Python', 'HTML/CSS', 'Git', 'Render'],
+  },
+  {
+    title: 'Root-Me',
+    detail: 'Regular practice in offensive and defensive security; 11 challenges documented as write-ups.',
+    tags: ['Web-Client', 'Web-Server', 'Cryptanalysis'],
+    link: GITHUB.rootme,
+  },
 ] as const;
 
 export type ProjectStatus = 'completed' | 'in-progress';
@@ -59,76 +83,69 @@ export interface Project {
   title: string;
   status: ProjectStatus;
   statusNote?: string;
-  domain: string;
   summary: string;
+  method?: string[];
   highlights: string[];
-  tech: string[];
-  link?: string;
+  links: { label: string; href: string }[];
 }
 
 export const PROJECTS: Project[] = [
   {
     id: 'pfsense',
-    title: 'pfSense-based network security solution — UMET Burkina',
+    title: 'pfSense-based network security solution — UMET-Burkina',
     status: 'completed',
-    statusNote: 'Bachelor’s thesis, co-authored · publicly defended on 17 January 2026',
-    domain: 'Network security',
+    statusNote: 'Bachelor’s thesis · co-written · completed',
     summary: 'Redesign of a flat university network into a segmented, defense-in-depth architecture centred on pfSense.',
-    highlights: [
-      'Five isolated VLANs with a deny-by-default firewall policy',
-      'Dual-WAN load balancing and failover, redundant switching core with RSTP',
-      'Suricata IDS/IPS, SquidGuard and pfBlockerNG web filtering',
-      'WPA-Enterprise (802.1X / RADIUS) for administrative Wi-Fi',
-      'Validated by six functional tests, including automatic blocking of an Nmap scan',
+    method: [
+      'Literature review',
+      'Audit and risk analysis (ISO/IEC 27005), with a comparison of pfSense, OPNsense, Cisco ASA and FortiGate',
+      'Design and deployment on VMware',
+      'Security, performance and availability tests',
     ],
-    tech: ['pfSense', 'Suricata', 'SquidGuard', 'pfBlockerNG', '802.1X', 'RADIUS', 'VMware'],
-    link: `${REPO}/docs/projects/pfsense-umet-burkina/README.md`,
+    highlights: ['5 isolated VLANs', 'Dual-WAN', 'Suricata IDS/IPS', 'SquidGuard', 'pfBlockerNG', '802.1X / RADIUS'],
+    links: [
+      { label: 'Project page on GitHub', href: GITHUB.thesisPage },
+      { label: 'Thesis (PDF, French)', href: GITHUB.thesisPdf },
+    ],
   },
   {
     id: 'ecommerce',
-    title: 'Secure e-commerce platform — China ↔ Burkina Faso',
+    title: 'China – Burkina Faso e-commerce platform',
     status: 'in-progress',
-    domain: 'Secure web development',
-    summary: 'Secure Django e-commerce application connecting China and Burkina Faso, giving local individuals and businesses easier access to the Chinese market.',
-    highlights: [
-      'Secure authentication and session management',
-      'Protection of personal and payment data',
-      'Server-side input validation and access control',
-      'Alignment with the OWASP Top 10',
-    ],
-    tech: ['Python', 'Django'],
-    link: `${REPO}/docs/projects/china-burkina-ecommerce/README.md`,
+    summary: 'Cross-border e-commerce platform giving individuals and small businesses in Burkina Faso easier access to the Chinese market, designed secure by default.',
+    highlights: ['Secure authentication and sessions', 'Protection of personal and payment data', 'Server-side validation and access control', 'OWASP Top 10 alignment'],
+    links: [{ label: 'Project page on GitHub', href: `${BLOB}/docs/projects/china-burkina-ecommerce/README.md` }],
   },
   {
     id: 'study-china',
-    title: 'Study in China — guidance platform for Burkinabè students',
+    title: '“Study in China” — guidance platform for Burkinabè students',
     status: 'in-progress',
-    domain: 'Web development · Education',
-    summary: 'Web platform offering reliable guidance and application resources to students who wish to study in China.',
-    highlights: ['University and programme directory', 'Scholarship opportunities and deadlines', 'Step-by-step application and visa guides'],
-    tech: [],
-    link: `${REPO}/docs/projects/study-in-china-guide/README.md`,
+    summary: 'Reliable guidance and application resources for students from Burkina Faso who want to study in China.',
+    highlights: ['University and programme directory', 'Scholarships and deadlines', 'Application and visa guides', 'Student life in China'],
+    links: [{ label: 'Project page on GitHub', href: `${BLOB}/docs/projects/study-in-china-guide/README.md` }],
   },
 ];
 
-/** Programmes and practice (no dates are published because none are documented). */
-export const EXPERIENCE = [
-  { title: 'Switch Maker programme', detail: 'Full-stack development with Spring Boot and Angular' },
-  { title: 'Network security project for UMET Burkina', detail: 'Audit, design and lab deployment of the pfSense architecture (thesis, 2024–2025)' },
-  { title: 'Cisco Networking Academy — Junior Cybersecurity Analyst career path', detail: 'Six courses completed (see certificates)' },
-  { title: 'Root-Me practice', detail: '11 challenges documented with root cause (CWE) and mitigations' },
-] as const;
+const CERT_FILES: Record<string, string> = {
+  'introduction-to-cybersecurity': 'Introduction_to_cybersecurity.png',
+  'networking-basics': 'Networking_Basics.png',
+  'endpoint-security': 'Endpoint_Security.png',
+  'network-defense': 'Network_Defense.png',
+  'networking-devices-and-basic-configuration': 'Networking_Devices_and_Basic_Configuration.png',
+  'cyber-threat-management': 'Cyber_threat_Management.png',
+};
 
 export const CERTIFICATES = [
   { id: 'introduction-to-cybersecurity', title: 'Introduction to Cybersecurity', focus: 'Security fundamentals and good practices' },
   { id: 'networking-basics', title: 'Networking Basics', focus: 'Network concepts and protocols' },
-  { id: 'networking-devices-and-basic-configuration', title: 'Networking Devices and Basic Configuration', focus: 'Configuring Cisco network devices' },
   { id: 'endpoint-security', title: 'Endpoint Security', focus: 'Hardening workstations and endpoints' },
   { id: 'network-defense', title: 'Network Defense', focus: 'Securing network infrastructure and operating systems' },
+  { id: 'networking-devices-and-basic-configuration', title: 'Networking Devices & Basic Configuration', focus: 'Configuring Cisco network devices' },
   { id: 'cyber-threat-management', title: 'Cyber Threat Management', focus: 'Threat and vulnerability assessment and management' },
 ] as const;
-export const CERTIFICATE_ISSUER = 'Cisco Networking Academy · certificates of course completion';
+export const CERTIFICATE_ISSUER = 'Cisco Networking Academy';
 export const certificateImage = (id: string, thumb = false) => `/assets/profile/certificates/${id}${thumb ? '-thumb' : ''}.webp`;
+export const certificateOnGitHub = (id: string) => `${BLOB}/docs/certifications/${CERT_FILES[id]}`;
 
 export const ROOTME = [
   { title: 'HTML – Disabled Buttons', category: 'Web-Client', difficulty: 'Easy', vuln: 'Client-side enforcement (CWE-602)', file: 'html-disabled-buttons' },
@@ -143,49 +160,53 @@ export const ROOTME = [
   { title: 'Encoding – ASCII', category: 'Cryptanalysis', difficulty: 'Easy', vuln: 'Encoding is not encryption', file: 'encoding-ascii' },
   { title: 'Encoding – UU', category: 'Cryptanalysis', difficulty: 'Easy', vuln: 'Encoding is not encryption', file: 'encoding-uu' },
 ] as const;
-export const rootmeLink = (file: string) => `${REPO}/docs/ctf/rootme/${file}.md`;
-export const ROOTME_METHOD = 'Objective → Recon → Steps → Root cause (CWE) → Mitigations → Lessons learned. Flags are never published.';
+export const rootmeLink = (file: string) => `${BLOB}/docs/ctf/rootme/${file}.md`;
+export const ROOTME_METHOD = 'Each write-up: objective → recon → steps → root cause (CWE) → mitigations → lessons learned. Flags are never published.';
 
-/** Research: the pfSense thesis (docs/projects/pfsense-umet-burkina). */
+export const SKILLS = {
+  security: ['pfSense', 'VLANs', 'Suricata IDS/IPS', 'SquidGuard', '802.1X / RADIUS', 'Burp Suite', 'ISO/IEC 27005 risk analysis'],
+  development: [
+    { name: 'HTML / CSS', level: 'Intermediate' },
+    { name: 'Python', level: 'Intermediate' },
+    { name: 'Git / GitHub', level: 'Intermediate' },
+    { name: 'Java', level: 'Beginner' },
+    { name: 'Spring Boot', level: 'Beginner' },
+    { name: 'Angular', level: 'Beginner' },
+    { name: 'Django', level: 'Beginner (learning)' },
+  ],
+} as const;
+export const LEVEL_VALUE: Record<string, number> = { Intermediate: 2, Beginner: 1, 'Beginner (learning)': 1 };
+
+/** The pfSense thesis in depth (Research Institute + Recruiter Mode). */
 export const RESEARCH = {
   title: 'Design and deployment of a pfSense-based network security solution',
-  caseStudy: 'Case study: UMET Burkina university network',
-  institution: 'UMET Burkina – Institut des Sciences et Techniques de l’Ingénieur (ISTI)',
+  caseStudy: 'Case study: UMET-Burkina university network',
   authors: 'Gérald Marie Wend-Kuuni Kabré, Rahim Gildas Dabone',
-  defended: 'Publicly defended on 17 January 2026',
   abstract:
     'An audit of the existing infrastructure revealed a flat, unsegmented network, Wi-Fi protected only by shared WPA2-PSK keys, ' +
     'and no filtering, intrusion detection or centralized logging. The pfSense architecture segments the network into five ' +
     'isolated VLANs, enforces a deny-by-default policy and adds web filtering, intrusion detection and prevention, ' +
-    'WPA-Enterprise authentication and centralized logging, validated by six functional tests.',
+    'WPA-Enterprise authentication and centralized logging.',
   figures: [
     { src: '/assets/profile/research/architecture-before.webp', caption: 'Initial architecture: flat network, no VLANs, no central firewall' },
     { src: '/assets/profile/research/architecture-after.webp', caption: 'Secured architecture: pfSense, Dual-WAN, redundant core with RSTP, five VLANs' },
-    { src: '/assets/profile/research/test-vlan-isolation.webp', caption: 'Test 3 — inter-VLAN isolation: students cannot reach administration' },
-    { src: '/assets/profile/research/test-web-filtering.webp', caption: 'Test 5 — web filtering: a blocked domain is denied by the proxy' },
-    { src: '/assets/profile/research/test-suricata-alerts.webp', caption: 'Test 6 — Suricata alerts on an Nmap scan; the source is blocked' },
+    { src: '/assets/profile/research/test-vlan-isolation.webp', caption: 'Inter-VLAN isolation: students cannot reach administration' },
+    { src: '/assets/profile/research/test-web-filtering.webp', caption: 'Web filtering: a blocked domain is denied by the proxy' },
+    { src: '/assets/profile/research/test-suricata-alerts.webp', caption: 'Suricata alerts on an Nmap scan; the source is blocked' },
   ],
-  tests: ['WAN connectivity', 'DHCP per VLAN', 'Inter-VLAN isolation', 'Guest access limited to the Internet', 'Web filtering', 'IDS/IPS detection and automatic blocking'],
   pdf: '/assets/docs/thesis-pfsense-umet-burkina.pdf',
-  future: ['High availability with two pfSense nodes (CARP)', 'Open-source SIEM (Wazuh, Graylog or ELK)', 'Captive portal with RADIUS/LDAP'],
 } as const;
 
-export type DistrictStatus = 'online' | 'construction';
+export interface DistrictInfo { id: string; name: string; role: string; panel: PanelKey; github?: string }
+export type PanelKey = 'profile' | 'academy' | 'soc' | 'missions' | 'research' | 'vault' | 'comms';
 
-/** The seven districts of the Sentinel Nexus campus. */
-export const DISTRICTS: { id: string; name: string; role: string; status: DistrictStatus }[] = [
-  { id: 'command', name: 'Main Command Center', role: 'Profile hub and navigation', status: 'online' },
-  { id: 'academy', name: 'Identity & Academy District', role: 'Identity, education and languages', status: 'online' },
-  { id: 'soc', name: 'Security Operations Center', role: 'Network security and defensive skills', status: 'online' },
-  { id: 'missions', name: 'Project Mission Room', role: 'Projects, completed and in progress', status: 'online' },
-  { id: 'research', name: 'Research Institute', role: 'pfSense thesis and validation evidence', status: 'online' },
-  { id: 'vault', name: 'Digital Proof Vault', role: 'Certificates and Root-Me write-ups', status: 'online' },
-  { id: 'comms', name: 'Communication Tower', role: 'Contact and CV', status: 'online' },
+/** The seven districts of the Sentinel Nexus campus and the portfolio part each one presents. */
+export const DISTRICTS: DistrictInfo[] = [
+  { id: 'command', name: 'Main Command Center', role: 'Profile and campus map', panel: 'profile', github: GITHUB.readme },
+  { id: 'academy', name: 'Identity & Academy District', role: 'Education and languages', panel: 'academy' },
+  { id: 'soc', name: 'Security Operations Center', role: 'Security and development skills', panel: 'soc', github: GITHUB.skills },
+  { id: 'missions', name: 'Project Mission Room', role: 'Projects and experience', panel: 'missions', github: GITHUB.projects },
+  { id: 'research', name: 'Research Institute', role: 'pfSense thesis in depth', panel: 'research', github: GITHUB.thesisPage },
+  { id: 'vault', name: 'Digital Proof Vault', role: 'Certificates and Root-Me write-ups', panel: 'vault', github: GITHUB.certifications },
+  { id: 'comms', name: 'Communication Tower', role: 'Contact', panel: 'comms', github: GITHUB.profile },
 ];
-
-/** Short highlight list used by the Command Center dossier. */
-export const HIGHLIGHTS = [
-  { label: 'pfSense network security thesis', detail: 'Co-authored · five VLANs, deny-by-default policy, Suricata IDS/IPS, 802.1X' },
-  { label: 'Cisco Networking Academy', detail: 'Six course completion certificates · Junior Cybersecurity Analyst path' },
-  { label: 'Root-Me', detail: '11 documented write-ups · web-client, web-server, cryptanalysis' },
-] as const;
