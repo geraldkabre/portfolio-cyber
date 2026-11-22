@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CYBERVERSE kit viewer (dev)</title>
+  <style>
+    html, body { margin: 0; background: #0b0f1a; color: #cfe8ff; font: 11px/1.2 Consolas, monospace; }
+    #wrap { position: relative; }
+    #grid { display: grid; position: relative; z-index: 1; }
+    .tile { position: relative; outline: 1px solid #1a2442; }
+    .tile span { position: absolute; left: 4px; bottom: 3px; right: 4px; text-shadow: 0 0 3px #000, 0 0 3px #000; }
+    .tile em { position: absolute; right: 4px; top: 3px; font-style: normal; color: #7f93b8; text-shadow: 0 0 3px #000; }
+    canvas { position: absolute; left: 0; top: 0; z-index: 0; }
+  </style>
+</head>
+<body>
+  <div id="wrap"><canvas id="c"></canvas><div id="grid"></div></div>
+  <script type="module" src="./viewer.ts"></script>
+</body>
+</html>

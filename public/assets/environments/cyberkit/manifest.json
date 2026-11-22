@@ -1,0 +1,331 @@
+{
+ "AC": {
+  "min": [
+   -0.395,
+   -0.281,
+   -0.506
+  ],
+  "max": [
+   0.644,
+   0.405,
+   0.265
+  ],
+  "size": [
+   1.038,
+   0.686,
+   0.771
+  ],
+  "tris": 946,
+  "materials": [
+   "LightGrey",
+   "Grey",
+   "Black",
+   "Orange"
+  ]
+ },
+ "AC_Side": {
+  "min": [
+   -0.912,
+   -0.281,
+   -0.506
+  ],
+  "max": [
+   0.703,
+   0.57,
+   0.265
+  ],
+  "size": [
+   1.615,
+   0.851,
+   0.771
+  ],
+  "tris": 924,
+  "materials": [
+   "LightGrey",
+   "Grey",
+   "Black",
+   "Orange"
+  ]
+ },
+ "AC_Stacked": {
+  "min": [
+   -0.317,
+   -0.53,
+   -0.254
+  ],
+  "max": [
+   0.353,
+   0.476,
+   0.258
+  ],
+  "size": [
+   0.67,
+   1.006,
+   0.511
+  ],
+  "tris": 776,
+  "materials": [
+   "LightGrey",
+   "Black",
+   "Orange",
+   "Texture_Signs"
+  ]
+ },
+ "Antenna_1": {
+  "min": [
+   -0.102,
+   -0.001,
+   -0.032
+  ],
+  "max": [
+   0.3,
+   1.655,
+   0.032
+  ],
+  "size": [
+   0.402,
+   1.656,
+   0.063
+  ],
+  "tris": 88,
+  "materials": [
+   "MetalLight"
+  ]
+ },
+ "Antenna_2": {
+  "min": [
+   -0.484,
+   -0.358,
+   -0.3
+  ],
+  "max": [
+   0.133,
+   0.373,
+   0.356
+  ],
+  "size": [
+   0.617,
+   0.731,
+   0.657
+  ],
+  "tris": 412,
+  "materials": [
+   "Grey",
+   "LightGrey",
+   "DarkGrey"
+  ]
+ },
+ "Cable_Long": {
+  "min": [
+   -0.142,
+   -2.505,
+   -0.045
+  ],
+  "max": [
+   0.146,
+   0.001,
+   0.087
+  ],
+  "size": [
+   0.288,
+   2.506,
+   0.132
+  ],
+  "tris": 768,
+  "materials": [
+   "Black"
+  ]
+ },
+ "Cable_Thick": {
+  "min": [
+   -0.273,
+   -1.633,
+   -0.193
+  ],
+  "max": [
+   0.273,
+   0.007,
+   0.193
+  ],
+  "size": [
+   0.546,
+   1.64,
+   0.386
+  ],
+  "tris": 384,
+  "materials": [
+   "Black"
+  ]
+ },
+ "Computer": {
+  "min": [
+   -0.235,
+   -0.002,
+   -0.224
+  ],
+  "max": [
+   0.235,
+   1.005,
+   0.405
+  ],
+  "size": [
+   0.47,
+   1.008,
+   0.629
+  ],
+  "tris": 1008,
+  "materials": [
+   "LightGrey",
+   "Orange",
+   "Screen",
+   "Grey"
+  ]
+ },
+ "Platform_4x4": {
+  "min": [
+   -2.218,
+   -3.712,
+   -1.981
+  ],
+  "max": [
+   2.25,
+   0.046,
+   1.922
+  ],
+  "size": [
+   4.468,
+   3.758,
+   3.904
+  ],
+  "tris": 13328,
+  "materials": [
+   "Grey",
+   "LightGrey",
+   "DarkGrey",
+   "Texture_Signs",
+   "Black",
+   "Orange"
+  ]
+ },
+ "Support_Long": {
+  "min": [
+   0,
+   -1.78,
+   -0.044
+  ],
+  "max": [
+   1.11,
+   1.78,
+   0.044
+  ],
+  "size": [
+   1.11,
+   3.561,
+   0.088
+  ],
+  "tris": 524,
+  "materials": [
+   "LightGrey",
+   "Grey"
+  ]
+ },
+ "TV_2": {
+  "min": [
+   -0.172,
+   -0.227,
+   -0.237
+  ],
+  "max": [
+   0.634,
+   0.985,
+   0.108
+  ],
+  "size": [
+   0.806,
+   1.212,
+   0.345
+  ],
+  "tris": 336,
+  "materials": [
+   "Grey",
+   "LightGrey",
+   "Texture_Signs",
+   "MetalLight"
+  ]
+ },
+ "Tank": {
+  "min": [
+   -0.284,
+   -0.415,
+   0
+  ],
+  "max": [
+   0.284,
+   0.415,
+   0.619
+  ],
+  "size": [
+   0.569,
+   0.831,
+   0.619
+  ],
+  "tris": 1392,
+  "materials": [
+   "LightGrey",
+   "Orange",
+   "Black"
+  ]
+ },
+ "Enemy_Flying": {
+  "min": [
+   -0.233,
+   0.235,
+   -0.234
+  ],
+  "max": [
+   1.135,
+   0.878,
+   0.247
+  ],
+  "size": [
+   1.369,
+   0.643,
+   0.481
+  ],
+  "tris": 2966,
+  "materials": [
+   "Edge",
+   "Main",
+   "Main2",
+   "Material.001",
+   "Material.004",
+   "Material.003",
+   "Material.002",
+   "Material"
+  ]
+ },
+ "Turret_Teleporter": {
+  "min": [
+   -0.579,
+   -0.008,
+   -0.557
+  ],
+  "max": [
+   0.579,
+   0.224,
+   0.557
+  ],
+  "size": [
+   1.158,
+   0.233,
+   1.115
+  ],
+  "tris": 1136,
+  "materials": [
+   "LightGrey",
+   "Black",
+   "Orange",
+   "Grey"
+  ]
+ }
+}

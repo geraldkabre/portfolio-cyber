@@ -1,0 +1,279 @@
+{
+ "Column_Astra": {
+  "min": [
+   -0.164,
+   -0.006,
+   -0.84
+  ],
+  "max": [
+   0.164,
+   3.021,
+   0.369
+  ],
+  "size": [
+   0.328,
+   3.028,
+   1.209
+  ],
+  "tris": 143,
+  "materials": [
+   "MI_Trim_03",
+   "MI_Trim_02",
+   "MI_Trim_01"
+  ]
+ },
+ "Column_Large_Straight": {
+  "min": [
+   -0.698,
+   -0.003,
+   -0.838
+  ],
+  "max": [
+   0.698,
+   10,
+   1.124
+  ],
+  "size": [
+   1.396,
+   10.003,
+   1.962
+  ],
+  "tris": 924,
+  "materials": [
+   "MI_Trim_03",
+   "MI_Trim_01",
+   "MI_Trim_03_Dark",
+   "MI_Trim_02"
+  ]
+ },
+ "Column_Simple": {
+  "min": [
+   -0.253,
+   0,
+   -0.506
+  ],
+  "max": [
+   0.253,
+   5,
+   0.469
+  ],
+  "size": [
+   0.507,
+   5,
+   0.975
+  ],
+  "tris": 108,
+  "materials": [
+   "MI_Trim_01",
+   "MI_Trim_02"
+  ]
+ },
+ "Door_Frame_SquareTall": {
+  "min": [
+   -2.422,
+   -0.013,
+   -0.253
+  ],
+  "max": [
+   2.422,
+   5,
+   0.253
+  ],
+  "size": [
+   4.844,
+   5.013,
+   0.507
+  ],
+  "tris": 272,
+  "materials": [
+   "MI_Trim_01"
+  ]
+ },
+ "Door_Metal": {
+  "min": [
+   -2.106,
+   0,
+   0
+  ],
+  "max": [
+   0,
+   4.049,
+   0.102
+  ],
+  "size": [
+   2.106,
+   4.049,
+   0.102
+  ],
+  "tris": 16,
+  "materials": [
+   "MI_Trim_01",
+   "MI_Trim_02"
+  ]
+ },
+ "Platform_Round1": {
+  "min": [
+   -2.995,
+   -0.029,
+   -2.995
+  ],
+  "max": [
+   2.995,
+   0.142,
+   2.995
+  ],
+  "size": [
+   5.991,
+   0.17,
+   5.991
+  ],
+  "tris": 720,
+  "materials": [
+   "MI_Trim_02",
+   "MI_Trim_01"
+  ]
+ },
+ "Prop_Computer": {
+  "min": [
+   -0.372,
+   -0.001,
+   -0.216
+  ],
+  "max": [
+   0.372,
+   1.592,
+   0.346
+  ],
+  "size": [
+   0.743,
+   1.593,
+   0.562
+  ],
+  "tris": 519,
+  "materials": [
+   "M_Decal_Screen",
+   "MI_Trim_01",
+   "M_Black"
+  ]
+ },
+ "Prop_Light_Floor": {
+  "min": [
+   -0.667,
+   -0.001,
+   -0.262
+  ],
+  "max": [
+   0.667,
+   0.208,
+   0.262
+  ],
+  "size": [
+   1.333,
+   0.209,
+   0.525
+  ],
+  "tris": 144,
+  "materials": [
+   "MI_Trim_01",
+   "M_Light"
+  ]
+ },
+ "TopWindow_Straight": {
+  "min": [
+   -2.099,
+   2.997,
+   -2
+  ],
+  "max": [
+   -1.429,
+   5.018,
+   2
+  ],
+  "size": [
+   0.669,
+   2.02,
+   4
+  ],
+  "tris": 375,
+  "materials": [
+   "MI_Trim_02",
+   "M_Glass",
+   "MI_PaddedWall",
+   "MI_Trim_02_Variation"
+  ]
+ },
+ "WallAstra_Straight": {
+  "min": [
+   -2.774,
+   -0.006,
+   -2
+  ],
+  "max": [
+   -1.565,
+   3.021,
+   2
+  ],
+  "size": [
+   1.209,
+   3.028,
+   4
+  ],
+  "tris": 355,
+  "materials": [
+   "MI_Trim_03",
+   "MI_Trim_02",
+   "MI_Trim_01",
+   "MI_Decal_Red",
+   "MI_Trim_03_Dark"
+  ]
+ },
+ "WallAstra_Straight_Divided": {
+  "min": [
+   -2.774,
+   -0.006,
+   -2
+  ],
+  "max": [
+   -1.565,
+   3.021,
+   2
+  ],
+  "size": [
+   1.209,
+   3.028,
+   4
+  ],
+  "tris": 328,
+  "materials": [
+   "MI_Trim_03",
+   "MI_Decal_Red",
+   "MI_Trim_03_Dark",
+   "MI_Trim_02",
+   "MI_Trim_01"
+  ]
+ },
+ "WallWindow_Straight": {
+  "min": [
+   -2.2,
+   0,
+   -2
+  ],
+  "max": [
+   -1.88,
+   3.187,
+   2
+  ],
+  "size": [
+   0.32,
+   3.187,
+   4
+  ],
+  "tris": 397,
+  "materials": [
+   "MI_Trim_02",
+   "MI_Trim_01",
+   "M_Glass",
+   "MI_PaddedWall"
+  ]
+ }
+}

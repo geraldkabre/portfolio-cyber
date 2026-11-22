@@ -1,0 +1,11 @@
+{
+  "_comment": "Kit pieces shipped in production (used by src/world). Build every piece with: node tools/env-build/build-kit.mjs --all",
+  "megakit": [
+    "Column_Astra", "Column_Large_Straight", "Column_Simple", "Door_Frame_SquareTall", "Door_Metal", "Platform_Round1",
+    "Prop_Computer", "Prop_Light_Floor", "TopWindow_Straight", "WallAstra_Straight", "WallAstra_Straight_Divided", "WallWindow_Straight"
+  ],
+  "cyberkit": [
+    "AC", "AC_Side", "AC_Stacked", "Antenna_1", "Antenna_2", "Cable_Long", "Cable_Thick", "Computer", "Enemy_Flying",
+    "Platform_4x4", "Support_Long", "TV_2", "Tank", "Turret_Teleporter"
+  ]
+}
