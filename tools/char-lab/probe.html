@@ -1,0 +1,85 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>char-probe</title>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+  "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js"
+} }
+</script></head>
+<body><pre id="log"></pre>
+<script type="module">
+// Diagnostic page: material-ID render + ray picking on a VRM, to find which geometry/material draws a given pixel.
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+
+const P = new URLSearchParams(location.search);
+const NAME = P.get('name') || 'probe';
+const out = { errors: [] };
+const images = {};
+window.addEventListener('error', (e) => out.errors.push(String(e.message)));
+
+const renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2b2f38);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x404050, 2.0));
+const cam = new THREE.PerspectiveCamera(20, 1, 0.01, 50);
+
+async function main() {
+  const loader = new GLTFLoader(); loader.register((p) => new VRMLoaderPlugin(p));
+  const gltf = await loader.loadAsync(P.get('model'));
+  const vrm = gltf.userData.vrm;
+  if (vrm.meta?.metaVersion === '0') VRMUtils.rotateVRM0(vrm);
+  scene.add(vrm.scene); vrm.scene.updateMatrixWorld(true);
+  if (P.get('update') !== '0') vrm.update(0);
+
+  // camera on the probed region: centre given as world coords (default: NEON drop area), looking from +Z
+  const c = new THREE.Vector3(...(P.get('c') || '-0.2,1.70,0').split(',').map(Number));
+  const half = Number(P.get('half') || '0.2');
+  const dir = new THREE.Vector3(...(P.get('dir') || '0,0,1').split(',').map(Number)).normalize();
+  cam.position.copy(c).addScaledVector(dir, half / Math.tan(THREE.MathUtils.degToRad(10)));
+  cam.lookAt(c); cam.aspect = 1; cam.updateProjectionMatrix();
+  const S = 800; renderer.setSize(S, S, false);
+  renderer.render(scene, cam); images.normal = renderer.domElement.toDataURL('image/png');
+
+  // material-ID render: same map alpha + alphaTest, flat colour per material
+  const legend = []; let k = 0; const swaps = [];
+  vrm.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    const mats = [].concat(o.material);
+    const repl = mats.map((m) => {
+      const hue = (k * 0.137) % 1; const col = new THREE.Color().setHSL(hue, 0.9, m.isOutline ? 0.25 : 0.55); k++;
+      legend.push({ mesh: o.name, material: m.name, outline: !!m.isOutline, color: '#' + col.getHexString(), alphaTest: m.alphaTest, transparent: m.transparent, side: m.side, visible: m.visible,
+        mapUuid: m.map?.uuid || m.uniforms?.map?.value?.uuid || null });
+      const map = m.map || m.uniforms?.map?.value || null;
+      return new THREE.MeshBasicMaterial({ color: col, map, alphaTest: m.alphaTest, transparent: m.transparent, side: m.side, visible: m.visible });
+    });
+    swaps.push([o, o.material]); o.material = Array.isArray(o.material) ? repl : repl[0];
+  });
+  out.legend = legend;
+  renderer.render(scene, cam); images.matid = renderer.domElement.toDataURL('image/png');
+  for (const [o, m] of swaps) o.material = m;
+
+  // ray picking on a grid
+  const ray = new THREE.Raycaster(); const hits = [];
+  const N = Number(P.get('grid') || '16');
+  for (let iy = 0; iy < N; iy++) for (let ix = 0; ix < N; ix++) {
+    const ndc = new THREE.Vector2((ix + 0.5) / N * 2 - 1, 1 - (iy + 0.5) / N * 2);
+    ray.setFromCamera(ndc, cam);
+    const h = ray.intersectObject(vrm.scene, true).slice(0, 3).map((x) => {
+      const mats = [].concat(x.object.material); const g = x.object.geometry;
+      const mi = g.groups.length ? (g.groups.find((gr) => x.faceIndex * 3 >= gr.start && x.faceIndex * 3 < gr.start + gr.count)?.materialIndex ?? 0) : 0;
+      const m = mats[mi];
+      return { mesh: x.object.name, material: m?.name, outline: !!m?.isOutline, uv: x.uv ? [+x.uv.x.toFixed(3), +x.uv.y.toFixed(3)] : null, d: +x.distance.toFixed(3), face: x.faceIndex };
+    });
+    if (h.length) hits.push({ px: [ix, iy], h });
+  }
+  out.hits = hits;
+}
+main().catch((e) => out.errors.push(String(e && e.stack || e))).finally(async () => {
+  out.images = images;
+  await fetch('/result?name=' + encodeURIComponent(NAME), { method: 'POST', body: JSON.stringify(out) });
+});
+</script></body></html>

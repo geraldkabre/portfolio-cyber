@@ -1,0 +1,71 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>char lineup</title>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+  "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js"
+} }
+</script></head>
+<body><pre id="log"></pre>
+<script type="module">
+// Side-by-side comparison of the two production characters, through the application runtime modules.
+// Query: name, a (VRM url), b (VRM url), clips (JSON url)
+import * as THREE from 'three';
+import { loadCharacter, loadClipData } from '/repo/src/cyberverse/characters/character.js';
+
+const P = new URLSearchParams(location.search);
+const out = { errors: [] }; const images = {};
+window.addEventListener('error', (e) => out.errors.push(String(e.message)));
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.outputColorSpace = THREE.SRGBColorSpace; document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0d1220);
+scene.add(new THREE.HemisphereLight(0xc8d8ff, 0x1a1a28, 1.3));
+const key = new THREE.DirectionalLight(0xffffff, 1.9); key.position.set(2, 4, 3); scene.add(key);
+const rim = new THREE.DirectionalLight(0x6fd0ff, 1.6); rim.position.set(-3, 3, -3); scene.add(rim);
+const rim2 = new THREE.DirectionalLight(0x9a7bff, 0.9); rim2.position.set(3, 2, -3); scene.add(rim2);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(3, 64), new THREE.MeshStandardMaterial({ color: 0x1b2233, roughness: 0.85 }));
+floor.rotation.x = -Math.PI / 2; scene.add(floor);
+const grid = new THREE.GridHelper(6, 30, 0x2a7da0, 0x1d2c44); grid.position.y = 0.002; scene.add(grid);
+const cam = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
+
+function shoot(W, H, cells) {
+  renderer.setSize(W, H, false); renderer.setScissorTest(true);
+  for (const c of cells) {
+    if (c.before) c.before();
+    renderer.setViewport(c.x, H - c.y - c.h, c.w, c.h); renderer.setScissor(c.x, H - c.y - c.h, c.w, c.h);
+    cam.aspect = c.w / c.h; cam.position.copy(c.pos); cam.lookAt(c.look); cam.updateProjectionMatrix(); renderer.render(scene, cam);
+  }
+  renderer.setScissorTest(false); return renderer.domElement.toDataURL('image/png');
+}
+const view = (look, dir, height) => ({ pos: look.clone().add(dir.clone().normalize().multiplyScalar((height * 0.6) / Math.tan(THREE.MathUtils.degToRad(14)))), look });
+
+async function main() {
+  const clips = await loadClipData(P.get('clips'));
+  const A = await loadCharacter(P.get('a'), clips), B = await loadCharacter(P.get('b'), clips);
+  A.root.position.x = -0.42; B.root.position.x = 0.42; scene.add(A.root, B.root);
+  const settle = (name, secs = 1.2) => { A.play(name, { fade: 0 }); B.play(name, { fade: 0 }); for (let t = 0; t < secs; t += 1 / 60) { A.update(1 / 60); B.update(1 / 60); } };
+  settle('Idle_Loop');
+  const C = new THREE.Vector3(0, 0.88, 0);
+  images.lineup = shoot(1800, 900, [
+    { x: 0, y: 0, w: 600, h: 900, ...view(C, new THREE.Vector3(0, 0.08, 1), 1.9) },
+    { x: 600, y: 0, w: 600, h: 900, ...view(C, new THREE.Vector3(0.8, 0.1, 1), 1.9) },
+    { x: 1200, y: 0, w: 600, h: 900, ...view(C, new THREE.Vector3(0, 0.1, -1), 1.9) }]);
+  const headA = A.vrm.humanoid.getRawBoneNode('head').getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.02, 0));
+  const headB = B.vrm.humanoid.getRawBoneNode('head').getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.02, 0));
+  images.faces = shoot(1200, 600, [
+    { x: 0, y: 0, w: 600, h: 600, ...view(headA, new THREE.Vector3(0.25, 0.05, 1), 0.42) },
+    { x: 600, y: 0, w: 600, h: 600, ...view(headB, new THREE.Vector3(-0.25, 0.05, 1), 0.42) }]);
+  settle('Walk_Loop', 1.0);
+  const walkA = A.actions.get('Walk_Loop'), walkB = B.actions.get('Walk_Loop');
+  B.mixer.setTime(0); walkB.time = walkA.time + walkA.getClip().duration * 0.5; B.update(0);
+  for (let t = 0; t < 0.3; t += 1 / 60) { A.update(1 / 60); B.update(1 / 60); }
+  images.walk = shoot(1500, 800, [{ x: 0, y: 0, w: 1500, h: 800, ...view(C, new THREE.Vector3(1, 0.12, 0.35), 1.95) }]);
+  settle('Jog_Fwd_Loop', 1.0);
+  images.jog = shoot(1500, 800, [{ x: 0, y: 0, w: 1500, h: 800, ...view(C, new THREE.Vector3(1, 0.12, 0.35), 1.95) }]);
+  out.heights = { a: +headA.y.toFixed(3), b: +headB.y.toFixed(3) };
+}
+main().catch((e) => out.errors.push(String(e && e.stack || e))).finally(async () => {
+  out.images = images; await fetch('/result?name=' + encodeURIComponent(P.get('name') || 'lineup'), { method: 'POST', body: JSON.stringify(out) });
+});
+</script></body></html>

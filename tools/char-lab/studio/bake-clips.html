@@ -1,0 +1,78 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>bake humanoid clips</title>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script></head>
+<body><pre id="log"></pre>
+<script type="module">
+// Bakes Universal Animation Library clips into skeleton-independent humanoid clips:
+// per frame and per VRM humanoid bone, the WORLD rotation relative to the T-pose rest (+Z forward, +Y up),
+// plus the hips translation relative to rest. The runtime converts them to local rotations for any VRM.
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { UAL_TO_HUMAN } from './ual-map.js';
+
+const P = new URLSearchParams(location.search);
+const NAME = P.get('name') || 'clips';
+const FPS = Number(P.get('fps') || 30);
+const CLIPS = (P.get('clips') || '').split(',').filter(Boolean);
+const out = { errors: [], clips: {} };
+const r4 = (x) => Math.round(x * 1e4) / 1e4;
+
+async function main() {
+  const gltf = await new GLTFLoader().loadAsync(P.get('model'));
+  const root = gltf.scene; root.updateMatrixWorld(true);
+  const sanitize = (n) => THREE.PropertyBinding.sanitizeNodeName(n);
+  const pairs = [];
+  for (const [ual, human] of Object.entries(UAL_TO_HUMAN)) {
+    let node = null; root.traverse((o) => { if (!node && (o.name === ual || o.name === sanitize(ual))) node = o; });
+    if (node) pairs.push({ human, node, rest: node.getWorldQuaternion(new THREE.Quaternion()) });
+  }
+  const hips = pairs.find((p) => p.human === 'hips').node;
+  const hips0 = hips.getWorldPosition(new THREE.Vector3());
+  const data = { format: 'cyberverse-humanoid-clips@1', fps: FPS,
+    source: 'Universal Animation Library (Standard) by Quaternius - CC0 1.0 - UAL1_Standard.glb (non root-motion)',
+    convention: 'per bone: world rotation relative to T-pose rest, +Z forward, +Y up, [x,y,z,w]; hips.p: world offset (m) from rest',
+    hipsRestHeight: r4(hips0.y), bones: pairs.map((p) => p.human), clips: {} };
+  const mixer = new THREE.AnimationMixer(root);
+  const q = new THREE.Quaternion(), inv = new THREE.Quaternion(), v = new THREE.Vector3();
+  for (const name of CLIPS) {
+    const clip = gltf.animations.find((a) => a.name === name);
+    if (!clip) { out.errors.push('missing clip ' + name); continue; }
+    mixer.stopAllAction(); const action = mixer.clipAction(clip); action.play();
+    const frames = Math.max(2, Math.round(clip.duration * FPS) + 1);
+    const tracks = {}; for (const p of pairs) tracks[p.human] = [];
+    const hp = [];
+    for (let i = 0; i < frames; i++) {
+      mixer.setTime(Math.min(clip.duration, i / FPS)); root.updateMatrixWorld(true);
+      for (const p of pairs) {
+        p.node.getWorldQuaternion(q); q.multiply(inv.copy(p.rest).invert());
+        const arr = tracks[p.human];
+        if (arr.length) { const k = arr.length - 4; if (q.x * arr[k] + q.y * arr[k + 1] + q.z * arr[k + 2] + q.w * arr[k + 3] < 0) q.set(-q.x, -q.y, -q.z, -q.w); }
+        arr.push(r4(q.x), r4(q.y), r4(q.z), r4(q.w));
+      }
+      hips.getWorldPosition(v).sub(hips0); hp.push(r4(v.x), r4(v.y), r4(v.z));
+    }
+    // constant tracks are stored as a single key
+    const t = {};
+    for (const [b, arr] of Object.entries(tracks)) {
+      let constant = true; for (let i = 4; i < arr.length && constant; i++) if (Math.abs(arr[i] - arr[i % 4]) > 2e-4) constant = false;
+      t[b] = constant ? arr.slice(0, 4) : arr;
+    }
+    // ground contact policy used by the runtime grounding pass: 'feet' = feet planted every frame,
+    // 'min' = has airborne phases (keep them, only fix the global height), 'none' = body on the ground (rolls)
+    const ground = /^Jump/.test(name) ? 'min' : /^Roll/.test(name) ? 'none' : 'feet';
+    data.clips[name] = { duration: r4(clip.duration), frames, loop: /_Loop$/.test(name), ground, q: t, hipsP: hp };
+    out.clips[name] = { frames, duration: clip.duration, animatedBones: Object.values(t).filter((a) => a.length > 4).length };
+  }
+  const bytes = new TextEncoder().encode(JSON.stringify(data));
+  await fetch('/save?rel=' + encodeURIComponent(P.get('out') || 'animations/ual-humanoid-clips.json'), { method: 'POST', body: bytes });
+  out.bytes = bytes.length;
+}
+main().catch((e) => out.errors.push(String(e && e.stack || e))).finally(async () => {
+  await fetch('/result?name=' + encodeURIComponent(NAME), { method: 'POST', body: JSON.stringify(out) });
+});
+</script></body></html>

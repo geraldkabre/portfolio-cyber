@@ -1,0 +1,15 @@
+# Raw third-party asset packs: keep folder structure, ignore contents
+assets-source/**
+!assets-source/**/
+!assets-source/**/.gitkeep
+
+# Original 3D asset packs - local source files
+/assets-source/
+
+# Node / build outputs
+node_modules/
+dist/
+*.log
+
+# Local test and capture outputs
+/test-results/

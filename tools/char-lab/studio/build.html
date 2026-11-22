@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>char-studio build</title>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+  "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js"
+} }
+</script></head>
+<body><pre id="log"></pre>
+<script type="module">
+// Reproducible character build: original VRM (read-only) -> recipe -> production VRM written to LAB_OUT.
+// Query: name, model (URL of the original), recipe (module in ./recipes/), out (relative output path)
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin } from '@pixiv/three-vrm';
+import * as G from './glb.js';
+import * as B from './bake.js';
+import * as V from './vrm.js';
+
+const P = new URLSearchParams(location.search);
+const NAME = P.get('name') || 'build';
+const out = { name: NAME, recipe: P.get('recipe'), model: P.get('model'), errors: [], log: [] };
+const images = {};
+const log = (m) => { out.log.push(m); document.getElementById('log').textContent += m + '\n'; };
+window.addEventListener('error', (e) => out.errors.push(String(e.message)));
+window.addEventListener('unhandledrejection', (e) => out.errors.push(String(e.reason && e.reason.stack || e.reason)));
+
+async function main() {
+  const t0 = performance.now();
+  const ab = await (await fetch(P.get('model'))).arrayBuffer();
+  out.sourceBytes = ab.byteLength;
+  const doc = G.parseGLB(ab.slice(0));
+  const loader = new GLTFLoader(); loader.register((p) => new VRMLoaderPlugin(p));
+  const gltf = await loader.parseAsync(ab.slice(0), '');
+  const vrm = gltf.userData.vrm; vrm.scene.updateMatrixWorld(true);
+  const bones = {};
+  for (const b of V.HUMAN_BONES) { const n = vrm.humanoid.getRawBoneNode(b); if (n) { const p = n.getWorldPosition(new THREE.Vector3()); bones[b] = [-p.x, p.y, -p.z]; } }
+  out.bones = Object.fromEntries(Object.entries(bones).map(([k, v]) => [k, v.map((x) => +x.toFixed(3))]));
+  const renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
+  const recipe = await import(`./recipes/${P.get('recipe')}.js?v=${Date.now()}`);
+  const ctx = { THREE, doc, G, B, V, renderer, bones, vrm, out, images, log, done: new Set(),
+    save: async (rel, bytes) => { const r = await fetch('/save?rel=' + encodeURIComponent(rel), { method: 'POST', body: bytes }); if (!r.ok) throw new Error('save failed ' + rel); } };
+  await recipe.run(ctx);
+  out.buildMs = Math.round(performance.now() - t0);
+}
+main().catch((e) => out.errors.push(String(e && e.stack || e))).finally(async () => {
+  out.images = images;
+  await fetch('/result?name=' + encodeURIComponent(NAME), { method: 'POST', body: JSON.stringify(out) });
+});
+</script></body></html>

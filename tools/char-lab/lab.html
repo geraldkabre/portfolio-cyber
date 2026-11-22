@@ -1,0 +1,384 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>char-lab</title>
+<style>body{margin:0;background:#111;color:#ddd;font:12px monospace}</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+  "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js"
+} }
+</script></head>
+<body><pre id="log"></pre>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+
+const P = new URLSearchParams(location.search);
+const NAME = P.get('name') || 'model';
+const MODEL = P.get('model');                       // e.g. /assets/04-characters-candidates/x/model.glb
+const UAL = P.get('ual') || '/assets/03-universal-animation-library/Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb';
+const YAW = parseFloat(P.get('yaw') || '0');        // extra rotation (deg) applied to the target to face +Z
+const out = { name: NAME, model: MODEL, errors: [], warnings: [] };
+const log = (m) => { document.getElementById('log').textContent += m + '\n'; };
+const images = {};
+
+window.addEventListener('error', (e) => out.errors.push(String(e.message)));
+
+async function post() {
+  out.images = images;
+  await fetch('/result?name=' + encodeURIComponent(NAME), { method: 'POST', body: JSON.stringify(out) });
+  log('POSTED');
+}
+
+const sanitize = (n) => THREE.PropertyBinding.sanitizeNodeName(n || '');
+
+// ---------- bone maps ----------
+const SIDES = [['l', 'left', 'L'], ['r', 'right', 'R']];
+const UAL_TO_HUMAN = { pelvis: 'hips', spine_01: 'spine', spine_02: 'chest', spine_03: 'upperChest', neck_01: 'neck', Head: 'head' };
+for (const [s, side] of SIDES) {
+  Object.assign(UAL_TO_HUMAN, {
+    [`clavicle_${s}`]: `${side}Shoulder`, [`upperarm_${s}`]: `${side}UpperArm`, [`lowerarm_${s}`]: `${side}LowerArm`, [`hand_${s}`]: `${side}Hand`,
+    [`thigh_${s}`]: `${side}UpperLeg`, [`calf_${s}`]: `${side}LowerLeg`, [`foot_${s}`]: `${side}Foot`, [`ball_${s}`]: `${side}Toes`,
+    [`thumb_01_${s}`]: `${side}ThumbMetacarpal`, [`thumb_02_${s}`]: `${side}ThumbProximal`, [`thumb_03_${s}`]: `${side}ThumbDistal`,
+  });
+  for (const [f, F] of [['index', 'Index'], ['middle', 'Middle'], ['ring', 'Ring'], ['pinky', 'Little']]) {
+    Object.assign(UAL_TO_HUMAN, { [`${f}_01_${s}`]: `${side}${F}Proximal`, [`${f}_02_${s}`]: `${side}${F}Intermediate`, [`${f}_03_${s}`]: `${side}${F}Distal` });
+  }
+}
+const HUMAN_TO_NAME = {
+  quaternius: { hips: 'Hips', spine: 'Abdomen', chest: 'Torso', upperChest: 'Chest', neck: 'Neck', head: 'Head' },
+  rigify: { hips: 'DEF-spine', spine: 'DEF-spine.001', chest: 'DEF-spine.002', upperChest: 'DEF-spine.003', neck: 'DEF-spine.004', head: 'DEF-spine.006' },
+};
+for (const [, side, S] of SIDES) {
+  Object.assign(HUMAN_TO_NAME.quaternius, { [`${side}Shoulder`]: `Shoulder.${S}`, [`${side}UpperArm`]: `UpperArm.${S}`, [`${side}LowerArm`]: `LowerArm.${S}`,
+    [`${side}Hand`]: `Hand.${S}`, [`${side}UpperLeg`]: `UpperLeg.${S}`, [`${side}LowerLeg`]: `LowerLeg.${S}`, [`${side}Foot`]: `Foot.${S}` });
+  Object.assign(HUMAN_TO_NAME.rigify, { [`${side}Shoulder`]: `DEF-shoulder.${S}`, [`${side}UpperArm`]: `DEF-upper_arm.${S}`, [`${side}LowerArm`]: `DEF-forearm.${S}`,
+    [`${side}Hand`]: `DEF-hand.${S}`, [`${side}UpperLeg`]: `DEF-thigh.${S}`, [`${side}LowerLeg`]: `DEF-shin.${S}`, [`${side}Foot`]: `DEF-foot.${S}`, [`${side}Toes`]: `DEF-toe.${S}`,
+    [`${side}ThumbMetacarpal`]: `DEF-thumb.01.${S}`, [`${side}ThumbProximal`]: `DEF-thumb.02.${S}`, [`${side}ThumbDistal`]: `DEF-thumb.03.${S}` });
+  for (const [F, f] of [['Index', 'f_index'], ['Middle', 'f_middle'], ['Ring', 'f_ring'], ['Little', 'f_pinky']]) {
+    Object.assign(HUMAN_TO_NAME.rigify, { [`${side}${F}Proximal`]: `DEF-${f}.01.${S}`, [`${side}${F}Intermediate`]: `DEF-${f}.02.${S}`, [`${side}${F}Distal`]: `DEF-${f}.03.${S}` });
+  }
+}
+
+// ---------- helpers ----------
+function findByName(root, name) {
+  const want = sanitize(name); let hit = null;
+  root.traverse((o) => { if (!hit && (o.name === name || o.name === want)) hit = o; });
+  if (!hit) { // Sketchfab export appends _NNN to node names
+    const ok = (n) => n.startsWith(want + '_') && /^[0-9]+$/.test(n.slice(want.length + 1));
+    root.traverse((o) => { if (!hit && o.isBone && ok(o.name)) hit = o; });
+  }
+  return hit;
+}
+// --- world-space pose helpers (for exported control rigs such as Rigify, whose deform bones are scattered in the hierarchy) ---
+function bindWorlds(root) { // true bind pose of every skin joint, in current scene space
+  root.updateMatrixWorld(true); const m = new Map();
+  root.traverse((o) => {
+    if (!o.isSkinnedMesh) return;
+    // glTF inverse-bind matrices are expressed in glTF scene space (GLTFLoader binds with an identity bindMatrix)
+    if (!o.bindMatrix.equals(new THREE.Matrix4())) console.warn('non-identity bindMatrix on ' + o.name);
+    // anchor: the top-most joint of the skin keeps its current world matrix
+    let i0 = 0; o.skeleton.bones.forEach((b, i) => { if (depth(b) < depth(o.skeleton.bones[i0])) i0 = i; });
+    const k = o.skeleton.bones[i0].matrixWorld.clone().multiply(o.skeleton.boneInverses[i0]);
+    o.skeleton.bones.forEach((b, i) => { if (!m.has(b)) m.set(b, k.clone().multiply(o.skeleton.boneInverses[i].clone().invert())); });
+  });
+  return m;
+}
+const _pi = new THREE.Matrix4(), _l = new THREE.Matrix4();
+function applyWorlds(order, W) { // order: bones sorted top-down; W: Map bone -> desired world matrix
+  for (const b of order) {
+    const w = W.get(b); if (!w) continue;
+    if (!W.has(b.parent)) b.parent.updateWorldMatrix(false, false);
+    _pi.copy(b.parent.matrixWorld).invert(); _l.multiplyMatrices(_pi, w);
+    _l.decompose(b.position, b.quaternion, b.scale); b.matrix.copy(_l); b.matrixWorld.copy(w);
+  }
+}
+const baseName = (n) => n.replace(/^(DEF|ORG|MCH)-/, '').replace(/_[0-9]+$/, '');
+function depth(o) { let d = 0; while (o.parent) { d++; o = o.parent; } return d; }
+
+function stats(root, gltf) {
+  const mats = new Map(), texs = new Map(), bones = new Set();
+  let tris = 0, verts = 0, meshes = 0, skinned = 0, morphs = 0;
+  root.traverse((o) => {
+    if (o.isMesh) {
+      meshes++; if (o.isSkinnedMesh) { skinned++; o.skeleton.bones.forEach((b) => bones.add(b)); }
+      const g = o.geometry; verts += g.attributes.position.count;
+      tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+      morphs += (g.morphAttributes.position || []).length;
+      for (const m of [].concat(o.material)) {
+        mats.set(m.uuid, { name: m.name, type: m.type, transparent: m.transparent, alphaTest: m.alphaTest, side: m.side,
+          hasMap: !!m.map, hasNormal: !!m.normalMap, hasEmissiveMap: !!m.emissiveMap });
+        for (const k of Object.keys(m)) {
+          const t = m[k]; if (t && t.isTexture && t.image) texs.set(t.image, { slot: k, w: t.image.width, h: t.image.height });
+        }
+        if (m.uniforms) for (const u of Object.values(m.uniforms)) { const t = u && u.value; if (t && t.isTexture && t.image) texs.set(t.image, { slot: 'uniform', w: t.image.width, h: t.image.height }); }
+      }
+    }
+  });
+  const texList = [...texs.values()];
+  const texMB = texList.reduce((a, t) => a + (t.w * t.h * 4 * 1.33), 0) / 1048576;
+  return { meshes, skinnedMeshes: skinned, triangles: Math.round(tris), vertices: verts, morphTargets: morphs,
+    materials: [...mats.values()], materialCount: mats.size, textureCount: texList.length,
+    textureSizes: texList.map((t) => `${t.w}x${t.h}`).sort(), estGpuTextureMB: +texMB.toFixed(1),
+    boneCount: bones.size, boneNames: [...bones].map((b) => b.name),
+    fileAnimations: (gltf.animations || []).map((a) => ({ name: a.name, duration: +a.duration.toFixed(2) })) };
+}
+
+function bounds(root) {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  root.traverse((o) => {
+    if (!o.isMesh || !o.visible) return;
+    if (o.isSkinnedMesh) { o.computeBoundingBox(); const b = o.boundingBox.clone().applyMatrix4(o.matrixWorld); box.union(b); }
+    else { o.geometry.computeBoundingBox(); box.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); }
+  });
+  return box;
+}
+
+// ---------- renderer ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setPixelRatio(1);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x2b2f38);
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x30303a, 1.6));
+const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(2, 4, 3); scene.add(key);
+const rim = new THREE.DirectionalLight(0x9fd8ff, 1.2); rim.position.set(-3, 3, -3); scene.add(rim);
+const back = new THREE.DirectionalLight(0xffffff, 0.8); back.position.set(0, 2, -4); scene.add(back);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(1.2, 48), new THREE.MeshStandardMaterial({ color: 0x3a3f4a }));
+ground.rotation.x = -Math.PI / 2; scene.add(ground);
+const cam = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+
+function shoot(w, h, cells, target = scene) {
+  renderer.setSize(w, h, false);
+  renderer.setScissorTest(true);
+  for (const c of cells) {
+    renderer.setViewport(c.x, h - c.y - c.h, c.w, c.h); renderer.setScissor(c.x, h - c.y - c.h, c.w, c.h);
+    if (c.before) c.before();
+    cam.aspect = c.w / c.h; cam.position.copy(c.pos); cam.lookAt(c.look); { const d = c.pos.distanceTo(c.look); cam.near = d / 100; cam.far = d * 10; } cam.updateProjectionMatrix();
+    renderer.render(c.scene || target, cam);
+  }
+  renderer.setScissorTest(false);
+  return renderer.domElement.toDataURL('image/png');
+}
+function view(box, dir, fill = 1.0) {
+  const c = box.getCenter(new THREE.Vector3()); const s = box.getSize(new THREE.Vector3());
+  const h = Math.max(s.y, s.x * 0.7) * 1.15 / fill;
+  const dist = (h / 2) / Math.tan(THREE.MathUtils.degToRad(15));
+  return { pos: c.clone().add(dir.clone().normalize().multiplyScalar(dist)), look: c };
+}
+
+// ---------- main ----------
+async function main() {
+  const loader = new GLTFLoader();
+  loader.register((p) => new VRMLoaderPlugin(p));
+  const t0 = performance.now();
+  const gltf = await loader.loadAsync(MODEL);
+  out.loadMs = Math.round(performance.now() - t0);
+  const vrm = gltf.userData.vrm || null;
+  let root = gltf.scene;
+  if (vrm) {
+    out.vrm = { metaVersion: vrm.meta?.metaVersion, meta: vrm.meta };
+    if (vrm.meta?.metaVersion === '0') VRMUtils.rotateVRM0(vrm);
+    vrm.humanoid.autoUpdateHumanBones = false;
+    // three-vrm syncs MToon uniforms (alpha cutoff, UV transforms...) in vrm.update(): it MUST run before rendering,
+    // otherwise cutout pixels render as opaque black (the "dark rectangle" seen in Phase 2B was this, not the model).
+    if (P.get('noUpdate') !== '1') vrm.update(0);
+    if (P.get('nomip') === '1') { const seen = new Set(); vrm.scene.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) for (const u of Object.values(m.uniforms || {})) { const t = u && u.value; if (t && t.isTexture && !seen.has(t)) { seen.add(t); t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; t.needsUpdate = true; } } }); out.noMipTextures = seen.size; }
+    if (P.get('noOutline') === '1') { let n = 0; vrm.scene.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) if (m.isOutline) { m.visible = false; n++; } }); out.outlinesHidden = n; }
+    root = vrm.scene;
+  }
+  root.rotation.y += THREE.MathUtils.degToRad(YAW);
+  scene.add(root);
+  out.stats = stats(root, gltf);
+  let box = bounds(root);
+  { // display-only normalisation for files exported in cm / with a Sketchfab wrapper scale (in memory, file untouched)
+    const h0 = box.max.y - box.min.y;
+    out.sourceHeightUnits = +h0.toFixed(3);
+    if (h0 > 3 || h0 < 0.5) { const k = 1.75 / h0; root.scale.multiplyScalar(k); out.displayScale = +k.toFixed(6); box = bounds(root);
+      root.position.y -= box.min.y; box = bounds(root); }
+  }
+  out.bounds = { min: box.min.toArray().map((v) => +v.toFixed(3)), max: box.max.toArray().map((v) => +v.toFixed(3)), height: +(box.max.y - box.min.y).toFixed(3) };
+  log('loaded ' + JSON.stringify(out.bounds));
+
+  // detect rig type
+  let rig = P.get('map') || 'auto';
+  const names = new Set(out.stats.boneNames);
+  if (rig === 'auto') rig = vrm ? 'vrm' : [...names].some((n) => /^DEF-spine(_\d+)?$/.test(n)) ? 'rigify'
+    : names.has(sanitize('UpperArm.L')) ? 'quaternius' : names.has('upperarm_l') ? 'ual' : 'unknown';
+  out.rigType = rig;
+  const resolveTarget = (human) => {
+    if (rig === 'vrm') return vrm.humanoid.getRawBoneNode(human);
+    if (rig === 'ual') { const n = Object.keys(UAL_TO_HUMAN).find((k) => UAL_TO_HUMAN[k] === human); return n ? findByName(root, n) : null; }
+    const n = (HUMAN_TO_NAME[rig] || {})[human]; return n ? findByName(root, n) : null;
+  };
+
+  let restW = null, boneOrder = null;
+  if (rig === 'rigify') { // Sketchfab stores a posed scene: go back to the real bind pose (in memory only)
+    restW = bindWorlds(root);
+    { // rigid (non-skinned) meshes hanging from bones, e.g. eyes: keep their posed placement relative to their mapped anchor bone
+      const mappedBase = new Map(Object.keys(HUMAN_TO_NAME.rigify).map((h) => [baseName(sanitize(HUMAN_TO_NAME.rigify[h])), h]));
+      const posedW = new Map(); for (const b of restW.keys()) posedW.set(b, b.matrixWorld.clone());
+      const rigid = []; root.traverse((o) => { if (o.isMesh && !o.isSkinnedMesh) rigid.push(o); });
+      for (const o of rigid) {
+        let anchor = null; for (let a = o.parent; a && !anchor; a = a.parent) { const h = mappedBase.get(baseName(a.name)); if (h && restW.has(a) && a.name.startsWith('DEF-')) anchor = a; else if (h) { const t = resolveTarget(h); if (t && restW.has(t)) anchor = t; } }
+        if (!anchor) continue;
+        o.updateWorldMatrix(true, false);
+        restW.set(o, null); o.userData._rigid = { anchor, rel: posedW.get(anchor).clone().invert().multiply(o.matrixWorld) };
+      }
+      out.rigidAttachments = rigid.filter((o) => o.userData._rigid).map((o) => o.name);
+    }
+    boneOrder = [...restW.keys()].sort((a, b) => depth(a) - depth(b));
+    { // the bind pose may be stored lying down (Blender Z-up): stand it up around the hips, display only
+      const hp = new THREE.Vector3().setFromMatrixPosition(restW.get(resolveTarget('hips')));
+      const up = new THREE.Vector3().setFromMatrixPosition(restW.get(resolveTarget('head'))).sub(hp).normalize();
+      const fix = new THREE.Matrix4().makeTranslation(hp.x, hp.y, hp.z)
+        .multiply(new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(up, new THREE.Vector3(0, 1, 0))))
+        .multiply(new THREE.Matrix4().makeRotationY(THREE.MathUtils.degToRad(Number(P.get('bindYaw') || 0))))
+        .multiply(new THREE.Matrix4().makeTranslation(-hp.x, -hp.y, -hp.z));
+      out.bindUpBeforeFix = up.toArray().map((x) => +x.toFixed(3));
+      for (const [b, w] of restW) if (w) restW.set(b, fix.clone().multiply(w));
+      for (const b of restW.keys()) if (b.userData._rigid) restW.set(b, restW.get(b.userData._rigid.anchor).clone().multiply(b.userData._rigid.rel));
+    }
+    applyWorlds(boneOrder, restW); root.updateMatrixWorld(true);
+    box = bounds(root); { const c = box.getCenter(new THREE.Vector3()); const t = new THREE.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z);
+      for (const [b, w] of restW) restW.set(b, t.clone().multiply(w)); applyWorlds(boneOrder, restW); root.updateMatrixWorld(true); }
+    box = bounds(root); out.boundsBindPose = { height: +(box.max.y - box.min.y).toFixed(3) };
+    out.bounds = { min: box.min.toArray().map((v) => +v.toFixed(3)), max: box.max.toArray().map((v) => +v.toFixed(3)), height: +(box.max.y - box.min.y).toFixed(3) };
+  }
+  ground.position.y = box.min.y; ground.scale.setScalar(Math.max(1, (box.max.y - box.min.y) / 1.7));
+
+  if (vrm && P.get('settle') === '1') { // let spring bones (hair, accessories) settle under gravity, as in VRoid Studio
+    root.updateMatrixWorld(true); for (let i = 0; i < 240; i++) { vrm.springBoneManager?.update(1 / 60); } root.updateMatrixWorld(true);
+    box = bounds(root); out.settled = true; out.boundsSettled = { height: +(box.max.y - box.min.y).toFixed(3) };
+  }
+  // ---- static views ----
+  const front = new THREE.Vector3(0, 0, 1), side = new THREE.Vector3(1, 0, 0), rear = new THREE.Vector3(0, 0, -1);
+  images.views = shoot(1500, 900, [
+    { x: 0, y: 0, w: 500, h: 900, ...view(box, front) },
+    { x: 500, y: 0, w: 500, h: 900, ...view(box, side) },
+    { x: 1000, y: 0, w: 500, h: 900, ...view(box, rear) }]);
+  const headBone = resolveTarget('head');
+  if (headBone || true) {
+    const hp = headBone ? headBone.getWorldPosition(new THREE.Vector3())
+      : new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y - (box.max.y - box.min.y) * 0.1, (box.min.z + box.max.z) / 2);
+    if (!headBone) out.warnings.push('no head bone: face close-up framed from the top of the bounding box');
+    const hb = new THREE.Box3().setFromCenterAndSize(hp.clone().add(new THREE.Vector3(0, 0.08, 0)), new THREE.Vector3(0.35, 0.45, 0.35).multiplyScalar(out.bounds.height / 1.7));
+    images.face = shoot(1200, 600, [
+      { x: 0, y: 0, w: 400, h: 600, ...view(hb, front) },
+      { x: 400, y: 0, w: 400, h: 600, ...view(hb, new THREE.Vector3(1, 0, 0.4)) },
+      { x: 800, y: 0, w: 400, h: 600, ...view(hb, new THREE.Vector3(-0.3, 0.2, -1)) }]);
+  } else out.warnings.push('head bone not found: no face close-up');
+
+  // ---- retarget UAL ----
+  const ualGltf = await new GLTFLoader().loadAsync(UAL);
+  const ual = ualGltf.scene; ual.updateMatrixWorld(true);
+  const pairs = [];
+  for (const [srcName, human] of Object.entries(UAL_TO_HUMAN)) {
+    const s = findByName(ual, srcName); const t = resolveTarget(human);
+    if (s && t) pairs.push({ human, s, t });
+  }
+  const missing = ['hips', 'spine', 'chest', 'neck', 'head', 'leftUpperArm', 'leftLowerArm', 'leftHand', 'rightUpperArm', 'rightLowerArm', 'rightHand',
+    'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'rightUpperLeg', 'rightLowerLeg', 'rightFoot'].filter((h) => !pairs.find((p) => p.human === h));
+  out.retarget = { mappedBones: pairs.length, missingCoreBones: missing };
+  root.updateMatrixWorld(true);
+  for (const p of pairs) {
+    p.sRest = p.s.getWorldQuaternion(new THREE.Quaternion());
+    p.tRest = p.t.getWorldQuaternion(new THREE.Quaternion());
+    p.tLocalRest = p.t.quaternion.clone();
+    p.depth = depth(p.t);
+  }
+  pairs.sort((a, b) => a.depth - b.depth);
+  const hipsP = pairs.find((p) => p.human === 'hips');
+  const sHip0 = hipsP?.s.getWorldPosition(new THREE.Vector3()); const tHip0 = hipsP?.t.getWorldPosition(new THREE.Vector3());
+  const scale = hipsP ? tHip0.y / Math.max(1e-4, sHip0.y) : 1;
+  out.retarget.hipHeightRatio = +scale.toFixed(3);
+  const mixer = new THREE.AnimationMixer(ual);
+  const q = new THREE.Quaternion(), pq = new THREE.Quaternion(), v = new THREE.Vector3();
+  // world-mode structures (rigify): every skin joint follows its logical deform parent
+  let followers = null, fBy = null;
+  if (restW) {
+    const byBase = new Map(pairs.map((p) => [baseName(p.t.name), p]));
+    const pairOf = new Map(pairs.map((p) => [p.t, p]));
+    const logical = (b) => {
+      const own = byBase.get(baseName(b.name)); if (own && own.t !== b) return own.t;
+      for (let a = b.parent; a; a = a.parent) { const m = byBase.get(baseName(a.name)); if (m && m.t !== b) return m.t; }
+      return null;
+    };
+    followers = boneOrder.map((b) => ({ b, L: logical(b), pair: pairOf.get(b) || null }));
+    fBy = new Map(followers.map((f) => [f.b, f]));
+    out.retarget.worldMode = { joints: followers.length, followingMapped: followers.filter((f) => f.L).length };
+  }
+  const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3();
+  let cycles = 0;
+  function worldPose() {
+    const D = new Map();
+    const busy = new Set();
+    const desired = (f) => {
+      if (D.has(f.b)) return D.get(f.b);
+      if (busy.has(f.b)) { cycles++; return restW.get(f.b); } busy.add(f.b);
+      const rest = restW.get(f.b); let w;
+      const Lw = f.L ? (D.get(f.L) || desired(fBy.get(f.L))) : null;
+      const follow = Lw ? Lw.clone().multiply(restW.get(f.L).clone().invert()).multiply(rest) : rest.clone();
+      if (f.pair) {
+        const p = f.pair; follow.decompose(_p, _q, _s); rest.decompose(new THREE.Vector3(), new THREE.Quaternion(), _s);
+        p.s.getWorldQuaternion(q); q.multiply(pq.copy(p.sRest).invert()).multiply(p.tRest);
+        if (p === hipsP) { _p.copy(tHip0).add(hipsP.s.getWorldPosition(v).sub(sHip0).multiplyScalar(scale)); }
+        w = new THREE.Matrix4().compose(_p, q, _s);
+      } else w = follow;
+      D.set(f.b, w); return w;
+    };
+    followers.forEach(desired);
+    applyWorlds(boneOrder, D); root.updateMatrixWorld(true);
+  }
+  function pose(clipName, t) {
+    const clip = ualGltf.animations.find((a) => a.name === clipName);
+    if (!clip) { out.warnings.push('missing UAL clip ' + clipName); return; }
+    mixer.stopAllAction(); mixer.clipAction(clip).play(); mixer.setTime(t * clip.duration); ual.updateMatrixWorld(true);
+    if (followers) { worldPose(); return; }
+    for (const p of pairs) {
+      p.s.getWorldQuaternion(q); q.multiply(pq.copy(p.sRest).invert()).multiply(p.tRest);   // desired world rotation of target
+      p.t.parent.getWorldQuaternion(pq); p.t.quaternion.copy(pq.invert().multiply(q));
+      p.t.updateMatrixWorld(true);
+    }
+    if (hipsP) {
+      const d = hipsP.s.getWorldPosition(v).sub(sHip0).multiplyScalar(scale);
+      const wp = tHip0.clone().add(d); hipsP.t.parent.worldToLocal(wp); hipsP.t.position.copy(wp); hipsP.t.updateMatrixWorld(true);
+    }
+    root.updateMatrixWorld(true);
+    if (vrm) { vrm.nodeConstraintManager?.update(); vrm.springBoneManager?.reset(); root.updateMatrixWorld(true); }
+  }
+  function reportCycles() { if (out.retarget.worldMode) out.retarget.worldMode.cycleBreaks = cycles; }
+  function restPose() { reportCycles(); if (restW) { applyWorlds(boneOrder, restW); root.updateMatrixWorld(true); return; } for (const p of pairs) p.t.quaternion.copy(p.tLocalRest); root.updateMatrixWorld(true); }
+
+  const three4 = new THREE.Vector3(0.6, 0.05, 1);
+  const frames = [['Idle_Loop', 0.3, three4], ['Walk_Loop', 0.25, side], ['Jog_Fwd_Loop', 0.25, side],
+                  ['Idle_Loop', 0.8, three4], ['Walk_Loop', 0.75, side], ['Jog_Fwd_Loop', 0.75, side]];
+  const cells = frames.map(([c, t, dir], i) => ({ x: (i % 3) * 500, y: Math.floor(i / 3) * 700, w: 500, h: 700, before: () => pose(c, t), ...view(box, dir, 0.95) }));
+  images.anim = shoot(1500, 1400, cells);
+  // same frames on the UAL mannequin as reference
+  const refScene = new THREE.Scene(); refScene.background = scene.background; refScene.add(scene.children[0].clone(), key.clone(), rim.clone(), ual);
+  const ubox = bounds(ual);
+  const refCells = frames.map(([c, t, dir], i) => ({ x: (i % 3) * 500, y: Math.floor(i / 3) * 700, w: 500, h: 700, scene: refScene,
+    before: () => { const clip = ualGltf.animations.find((a) => a.name === c); mixer.stopAllAction(); mixer.clipAction(clip).play(); mixer.setTime(t * clip.duration); ual.updateMatrixWorld(true); },
+    ...view(ubox, dir, 0.95) }));
+  images.anim_ref = shoot(1500, 1400, refCells);
+
+  // ---- performance (continuous animated rendering at 1280x720) ----
+  restPose();
+  renderer.setSize(1280, 720, false); cam.aspect = 1280 / 720; Object.assign(cam.position, view(box, three4).pos); cam.lookAt(box.getCenter(new THREE.Vector3())); cam.updateProjectionMatrix();
+  const walk = ualGltf.animations.find((a) => a.name === 'Walk_Loop');
+  let tt = 0; const N = 120; const ts = performance.now();
+  for (let i = 0; i < N; i++) { tt = (tt + 1 / 60) % 1; pose('Walk_Loop', tt); renderer.render(scene, cam); }
+  renderer.getContext().finish();
+  out.perf = { framesRendered: N, avgMsPerFrame: +((performance.now() - ts) / N).toFixed(2), drawCalls: renderer.info.render.calls,
+    trianglesPerFrame: renderer.info.render.triangles, programs: renderer.info.programs?.length, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures };
+  const gl = renderer.getContext(); const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+  out.perf.gpu = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : 'unknown';
+  void walk;
+}
+
+main().catch((e) => { out.errors.push(String(e && e.stack || e)); log('ERROR ' + e); }).finally(post);
+</script></body></html>

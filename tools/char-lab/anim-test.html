@@ -1,0 +1,146 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>char anim-test</title>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+  "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js"
+} }
+</script></head>
+<body><pre id="log"></pre>
+<script type="module">
+// Production-path validation: uses the application's own runtime modules (src/cyberverse/characters) on the
+// production VRM files, with spring bones and vrm.update(dt) running in real time steps.
+// Query: name, model (VRM url), model2 (optional second VRM for the line-up), clips (JSON url)
+import * as THREE from 'three';
+import { loadCharacter, loadClipData } from '/repo/src/cyberverse/characters/character.js';
+
+const P = new URLSearchParams(location.search);
+const NAME = P.get('name') || 'anim';
+const out = { name: NAME, errors: [], warnings: [] };
+const images = {};
+window.addEventListener('error', (e) => out.errors.push(String(e.message)));
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x141a2a);
+scene.add(new THREE.HemisphereLight(0xc8d8ff, 0x202030, 1.4));
+const key = new THREE.DirectionalLight(0xffffff, 2.0); key.position.set(2, 4, 3); scene.add(key);
+const rim = new THREE.DirectionalLight(0x7fd8ff, 1.4); rim.position.set(-3, 3, -3); scene.add(rim);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(2.2, 64), new THREE.MeshStandardMaterial({ color: 0x252c3d, roughness: 0.9 }));
+ground.rotation.x = -Math.PI / 2; scene.add(ground);
+const grid = new THREE.GridHelper(4.4, 22, 0x2e6f8f, 0x22324a); grid.position.y = 0.001; scene.add(grid);
+const cam = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+
+function shoot(W, H, cells) {
+  renderer.setSize(W, H, false); renderer.setScissorTest(true);
+  for (const c of cells) {
+    if (c.before) c.before();
+    renderer.setViewport(c.x, H - c.y - c.h, c.w, c.h); renderer.setScissor(c.x, H - c.y - c.h, c.w, c.h);
+    cam.aspect = c.w / c.h; cam.fov = c.fov || 30; cam.position.copy(c.pos); cam.lookAt(c.look); cam.updateProjectionMatrix();
+    renderer.render(scene, cam);
+  }
+  renderer.setScissorTest(false);
+  return renderer.domElement.toDataURL('image/png');
+}
+const frame = (center, dir, height, fov = 30) => ({ pos: center.clone().add(dir.clone().normalize().multiplyScalar((height * 0.62) / Math.tan(THREE.MathUtils.degToRad(fov / 2)))), look: center, fov });
+
+// lowest shoe vertex (CPU skinning of the real mesh) = actual foot contact with the ground plane y = 0
+function shoeProbe(vrm) {
+  const meshes = []; vrm.scene.traverse((o) => { if (o.isSkinnedMesh && [].concat(o.material).some((m) => /Shoes/.test(m.name))) meshes.push(o); });
+  const sets = meshes.map((m) => { const idx = m.geometry.index.array; const s = new Set(); for (let i = 0; i < idx.length; i++) s.add(idx[i]); return { m, verts: [...s].filter((_, i) => i % 2 === 0) }; });
+  const v = new THREE.Vector3();
+  return () => { let low = Infinity; vrm.scene.updateMatrixWorld(true); for (const { m, verts } of sets) { for (const i of verts) { v.fromBufferAttribute(m.geometry.attributes.position, i); m.applyBoneTransform(i, v); v.applyMatrix4(m.matrixWorld); if (v.y < low) low = v.y; } } return low; };
+}
+
+async function main() {
+  const clips = await loadClipData(P.get('clips'));
+  const t0 = performance.now();
+  const hero = await loadCharacter(P.get('model'), clips);
+  out.loadMs = Math.round(performance.now() - t0);
+  scene.add(hero.root);
+  out.meta = { title: hero.vrm.meta?.title, version: hero.vrm.meta?.version, metaVersion: hero.vrm.meta?.metaVersion };
+  out.clipCount = hero.clips.size;
+  const lowest = shoeProbe(hero.vrm);
+  hero.vrm.update(0); hero.root.updateMatrixWorld(true);
+  out.restLowestShoe = +lowest().toFixed(4);
+  const headY = hero.vrm.humanoid.getNormalizedBoneNode('head').getWorldPosition(new THREE.Vector3()).y;
+  const H = headY + 0.2;
+  const C = new THREE.Vector3(0, H / 2, 0);
+  const front = new THREE.Vector3(0, 0.05, 1), side = new THREE.Vector3(1, 0.05, 0), q34 = new THREE.Vector3(0.7, 0.1, 1);
+
+  // ---- clips: real-time simulation (dt = 1/60), spring bones active; captures + foot contact ----
+  const DIRS = { Idle_Loop: q34, Jump_Loop: q34 };
+  const TEST = (P.get('rows') || 'Idle_Loop,Walk_Loop,Jog_Fwd_Loop,Sprint_Loop,Jump_Loop,Crouch_Fwd_Loop').split(',').map((n) => [n, DIRS[n] || side]);
+  const phases = P.get('phases') ? P.get('phases').split(',').map(Number) : [0, 0.25, 0.5, 0.75];
+  const ZOOM = P.get('zoom') === 'head';
+  const headNode = hero.vrm.humanoid.getRawBoneNode('head');
+  out.clips = {};
+  const cells = []; const CW = 300, CH = 420;
+  const snaps = [];
+  for (const [ri, [clipName, dir]] of TEST.entries()) {
+    const action = hero.play(clipName, { fade: 0 });
+    const dur = action.getClip().duration; const dt = 1 / 60;
+    for (let t = 0; t < 1.0; t += dt) hero.update(dt);           // warm-up: let hair and accessories settle
+    const contact = []; let k = 0;
+    const startTime = action.time;
+    const captured = new Set();
+    for (let t = 0; t <= dur + 1e-6; t += dt) {
+      hero.update(dt);
+      const ph = ((action.time - startTime) / dur + 1) % 1;
+      if (k++ % 2 === 0) contact.push(lowest());
+      for (const [pi, p] of phases.entries()) {
+        if (!captured.has(pi) && ph >= p - 1e-6 && ph < p + dt / dur + 1e-6) {
+          captured.add(pi);
+          // render immediately into an offscreen target (state is transient)
+          const rt = new THREE.WebGLRenderTarget(CW, CH, { samples: 4 }); rt.texture.colorSpace = THREE.SRGBColorSpace; renderer.setRenderTarget(rt);
+          const f = ZOOM ? frame(headNode.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, -0.12, 0)), dir, 0.75) : frame(C, dir, H); cam.aspect = CW / CH; cam.fov = f.fov; cam.position.copy(f.pos); cam.lookAt(f.look); cam.updateProjectionMatrix();
+          renderer.setSize(CW, CH, false); renderer.render(scene, cam);
+          const buf = new Uint8Array(CW * CH * 4); renderer.readRenderTargetPixels(rt, 0, 0, CW, CH, buf); renderer.setRenderTarget(null); rt.dispose();
+          snaps.push({ x: pi * CW, y: ri * CH, buf });
+        }
+      }
+    }
+    const s = contact.slice().sort((a, b) => a - b);
+    out.clips[clipName] = { duration: +dur.toFixed(3), lowestShoeMin: +s[0].toFixed(4), lowestShoeMax: +s[s.length - 1].toFixed(4),
+      lowestShoeMedian: +s[Math.floor(s.length / 2)].toFixed(4), samples: s.length };
+  }
+  images.clips = gridImage(snaps, phases.length * CW, TEST.length * CH, CW, CH);
+  if (P.get('only') === 'clips') return;
+
+  // ---- deformation close-ups at jog extremes (elbows, shoulders, knees) ----
+  const pose = (name, ph) => { const a = hero.play(name, { fade: 0 }); for (let t = 0; t < 0.6; t += 1 / 60) hero.update(1 / 60); a.time = ph * a.getClip().duration; hero.update(0); };
+  const upper = new THREE.Vector3(0, H * 0.72, 0), legs = new THREE.Vector3(0, H * 0.28, 0);
+  images.deform = shoot(1200, 600, [
+    { x: 0, y: 0, w: 400, h: 600, before: () => pose('Jog_Fwd_Loop', 0.25), ...frame(upper, new THREE.Vector3(0.9, 0.2, 0.8), 0.75) },
+    { x: 400, y: 0, w: 400, h: 600, before: () => pose('Jog_Fwd_Loop', 0.75), ...frame(upper, new THREE.Vector3(-0.9, 0.2, 0.8), 0.75) },
+    { x: 800, y: 0, w: 400, h: 600, before: () => pose('Walk_Loop', 0.25), ...frame(legs, new THREE.Vector3(1, 0.1, 0.3), 0.85) },
+  ]);
+
+  // ---- performance: idle -> walk, 300 animated frames at 1280x720 ----
+  hero.play('Walk_Loop', { fade: 0 });
+  renderer.setSize(1280, 720, false); const f = frame(C, q34, H); cam.aspect = 1280 / 720; cam.fov = f.fov; cam.position.copy(f.pos); cam.lookAt(f.look); cam.updateProjectionMatrix();
+  const gl = renderer.getContext(); gl.finish();
+  const ts = performance.now(); let upd = 0;
+  for (let i = 0; i < 300; i++) { const u0 = performance.now(); hero.update(1 / 60); upd += performance.now() - u0; renderer.render(scene, cam); }
+  gl.finish();
+  out.perf = { frames: 300, avgMsPerFrame: +((performance.now() - ts) / 300).toFixed(2), avgUpdateMs: +(upd / 300).toFixed(3),
+    drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries };
+  const dbg = gl.getExtension('WEBGL_debug_renderer_info'); out.perf.gpu = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '?';
+}
+
+function gridImage(snaps, W, H, CW, CH) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  for (const s of snaps) {
+    const img = new ImageData(CW, CH); for (let y = 0; y < CH; y++) img.data.set(s.buf.subarray((CH - 1 - y) * CW * 4, (CH - y) * CW * 4), y * CW * 4);
+    g.putImageData(img, s.x, s.y);
+  }
+  return c.toDataURL('image/png');
+}
+
+main().catch((e) => out.errors.push(String(e && e.stack || e))).finally(async () => {
+  out.images = images;
+  await fetch('/result?name=' + encodeURIComponent(NAME), { method: 'POST', body: JSON.stringify(out) });
+});
+</script></body></html>
