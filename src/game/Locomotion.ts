@@ -28,6 +28,9 @@ export interface LocomotionInput {
 
 const smooth01 = (a: number, b: number, v: number) => THREE.MathUtils.smoothstep(v, a, b);
 
+/** Foot-phase offsets per character, measured once (behind the loading screen, see Locomotion.prepare). */
+const measured = new WeakMap<CharacterHandle, Record<'walk' | 'run' | 'sprint', number>>();
+
 /**
  * Continuous locomotion blend (replaces discrete clip switches):
  * - walk / jog / sprint loops run together as a 1D blend space weighted by speed, idle fades in near rest;
@@ -53,7 +56,9 @@ export class Locomotion {
       this.actions.set(s, a);
     }
     for (const m of MOVING) this.duration[m] = this.actions.get(m)!.getClip().duration;
-    this.measurePhases();
+    const known = measured.get(handle);
+    if (known) Object.assign(this.offset, known);
+    else this.measurePhases();
     handle.mixer.stopAllAction();
     for (const s of SLOTS) {
       const a = this.actions.get(s)!;
@@ -63,6 +68,17 @@ export class Locomotion {
       a.setEffectiveWeight(this.weight[s]);
       a.play();
     }
+  }
+
+  /**
+   * Measures a character's foot phases ahead of time (~0.1-0.3 s of work): called while the game loads, so that
+   * choosing an operator never freezes the picture. Leaves the character's mixer stopped.
+   */
+  static prepare(handle: CharacterHandle, stride: number) {
+    if (measured.has(handle)) return;
+    const l = new Locomotion(handle, stride); // measures and caches
+    handle.mixer.stopAllAction();
+    void l;
   }
 
   /**
@@ -105,6 +121,7 @@ export class Locomotion {
       for (let k = 1; k < samples; k++) if (s[k][axis] > s[best][axis]) best = k;
       this.offset[m] = best / samples;
     }
+    measured.set(this.handle, { ...this.offset });
   }
 
   /** Dominant clip (debug / tests). */

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { SECURITY_HEADERS } from './security-headers.mjs';
 
 // CYBERVERSE - one Vite project, two pages:
 // - index.html: the 3D experience (the engine is code-split and only loaded there);
@@ -12,7 +13,8 @@ export default defineConfig({
   plugins: [react()],
   define: { __HAS_PHOTO__: JSON.stringify(hasPhoto) },
   server: { host: '127.0.0.1', port: 5173 },
-  preview: { host: '127.0.0.1', port: 4173 },
+  // Local preview serves the production headers (CSP included), so every test runs under the real policy.
+  preview: { host: '127.0.0.1', port: 4173, headers: SECURITY_HEADERS },
   build: {
     target: 'es2022',
     assetsInlineLimit: 0,

@@ -59,9 +59,9 @@ export const WORLDS: World[] = [
   },
   {
     id: 'education', word: 'STUDY', title: 'Education', ...visual('education'),
-    headline: ['Four years', 'of engineering.'],
+    headline: ['Three years', 'of engineering.'],
     lead: 'Bachelor of Engineering in cybersecurity at Dadoh University, after preparatory classes at 2iE. Now learning Mandarin in China.',
-    stats: [{ value: 2026, label: 'Bachelor of Engineering' }, { value: 4, label: 'years of engineering studies' }],
+    stats: [{ value: 2026, label: 'Bachelor of Engineering' }, { value: 3, label: 'years of engineering studies' }],
     items: EDUCATION.map((e) => ({ label: e.title, meta: `${e.period} · ${e.school}` })),
     cta: { label: 'Details on GitHub', href: GITHUB.readme },
   },

@@ -55,7 +55,15 @@ export class Engine {
   /** Multiplier on the pixel ratio, driven by adaptive resolution (0.6 .. 1). */
   renderScale = 1;
   autoResolution = true;
-  private adapt = { acc: 0, frames: 0, timer: 0, good: 0, cooldown: 0 };
+  private adapt = { acc: 0, frames: 0, timer: 0, good: 0, cooldown: 0, hold: 0 };
+  /** A render-scale change waiting for the start of the next frame. */
+  private pendingResize = false;
+
+  /** Freezes adaptive resolution for a while (scene changes: shaders compile, the first frames are slow). */
+  holdResolution(seconds: number) {
+    this.adapt.hold = Math.max(this.adapt.hold, seconds);
+    this.adapt.acc = 0; this.adapt.frames = 0; this.adapt.timer = 0;
+  }
 
   constructor(readonly canvas: HTMLCanvasElement, level: QualityLevel) {
     this.quality = QUALITY[level];
@@ -187,6 +195,8 @@ export class Engine {
     const dt = Math.min(raw, 1 / 20) * this.timeScale;
     this.elapsed += dt;
     const t0 = performance.now();
+    // Resize before rendering (resizing clears the canvas: done after a render, it showed one blank frame).
+    if (this.pendingResize) { this.pendingResize = false; this.resize(); }
     for (const u of this.updaters) u.fn(dt, this.elapsed);
     this.renderer.info.reset();
     this.composer.render(dt);
@@ -205,17 +215,21 @@ export class Engine {
   private adaptResolution(raw: number) {
     const a = this.adapt;
     // Hysteresis: each change reallocates the render targets (a visible hitch), so changes are rare and never oscillate.
+    if (a.hold > 0) { a.hold = Math.max(0, a.hold - raw); return; }
     a.acc += raw * 1000; a.frames++; a.timer += raw; a.cooldown = Math.max(0, a.cooldown - raw);
     if (a.timer < 1.5) return;
     const avg = a.acc / a.frames;
     if (avg > 21 && this.renderScale > 0.6) {
-      this.renderScale = Math.max(0.6, +(this.renderScale - 0.1).toFixed(2));
+      // One step straight to the scale that should reach ~60 fps (pixel cost ∝ scale²): a single reallocation of
+      // the render targets instead of a staircase of hitches.
+      const target = this.renderScale * Math.sqrt(16.7 / avg);
+      this.renderScale = Math.max(0.6, Math.min(this.renderScale - 0.05, Math.round(target * 20) / 20));
       a.good = 0;
       a.cooldown = 12;
-      this.resize();
+      this.pendingResize = true;
     } else if (avg < 13.5 && a.cooldown === 0) {
       a.good += a.timer;
-      if (a.good > 8 && this.renderScale < 1) { this.renderScale = Math.min(1, +(this.renderScale + 0.05).toFixed(2)); a.good = 0; this.resize(); }
+      if (a.good > 8 && this.renderScale < 1) { this.renderScale = Math.min(1, +(this.renderScale + 0.05).toFixed(2)); a.good = 0; this.pendingResize = true; }
     } else a.good = 0;
     a.acc = 0; a.frames = 0; a.timer = 0;
   }

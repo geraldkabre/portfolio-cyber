@@ -6,6 +6,7 @@ import { NexusWorld } from '../world/NexusWorld';
 import { CHARACTERS, CLIPS_URL, LOCOMOTION } from '../cyberverse/characters/characters.js';
 import { loadCharacter, loadClipData, type CharacterHandle } from '../cyberverse/characters/character.js';
 import { Player } from './Player';
+import { Locomotion, UAL_HIPS } from './Locomotion';
 import { ThirdPersonCamera } from './ThirdPersonCamera';
 import { store, type OperatorId, type PanelId } from '../app/store';
 import { LAYOUT } from '../world/layout';
@@ -117,9 +118,43 @@ export class Game {
     ]);
     this.characters.set('female', female);
     this.characters.set('male', male);
+    report('Calibrating motion');
+    for (const ch of [female, male]) Locomotion.prepare(ch, (ch.vrm.humanoid.normalizedRestPose.hips?.position?.[1] ?? UAL_HIPS) / UAL_HIPS);
     this.stage();
-    report('Compiling shaders');
+    report('Preparing the campus (graphics)');
+    // The plaza is fully prepared behind the loading screen, so entering the world never freezes the picture. (A
+    // district finishes its preparation under the teleport flash, where a short hitch cannot be seen.)
     await this.engine.renderer.compileAsync(this.engine.scene, this.engine.camera);
+    // On Windows (ANGLE / Direct3D) a shader is only finished the first time an object is really drawn: a quick
+    // invisible camera tour draws the plaza in every direction behind the loading screen.
+    const cam = this.engine.camera;
+    const saved = { p: cam.position.clone(), q: cam.quaternion.clone() };
+    const views: [THREE.Vector3, THREE.Vector3][] = [];
+    // Wide angle: four directions cover the plaza.
+    for (let k = 0; k < 4; k++) {
+      const a = (k * Math.PI) / 2;
+      views.push([new THREE.Vector3(0, 4, 14), new THREE.Vector3(Math.sin(a) * 20, 1, 14 - Math.cos(a) * 20)]);
+    }
+    // Objects that start hidden (contact shadow, terminal light columns…) are drawn during the tour too.
+    const hidden: THREE.Object3D[] = [];
+    this.engine.scene.traverse((o) => { if (!o.visible && (o as THREE.Mesh).isMesh) { hidden.push(o); o.visible = true; } });
+    views.push([new THREE.Vector3(0, 1.8, 25), new THREE.Vector3(0, 0, 18)]);
+    const fov = cam.fov;
+    cam.fov = 110;
+    cam.updateProjectionMatrix();
+    for (const [p, t] of views) {
+      cam.position.copy(p);
+      cam.lookAt(t);
+      cam.updateMatrixWorld();
+      this.engine.renderOnce();
+      await new Promise((r) => requestAnimationFrame(() => r(null))); // keep the loading screen responsive
+    }
+    for (const o of hidden) o.visible = false;
+    cam.fov = fov;
+    cam.updateProjectionMatrix();
+    cam.position.copy(saved.p);
+    cam.quaternion.copy(saved.q);
+    this.world.setActive('command');
     this.engine.onUpdate((dt, t) => this.tick(dt, t), 10);
     this.bindInput();
     this.engine.start();
@@ -171,6 +206,7 @@ export class Game {
   confirm(id: OperatorId = store.get().hovered) {
     if (store.get().phase !== 'select') return;
     store.set({ selected: id, hovered: id, phase: 'entering' });
+    this.engine.holdResolution(6); // the first look at the plaza compiles shaders: no resolution change meanwhile
     const other: OperatorId = id === 'female' ? 'male' : 'female';
     this.dissolve = { t: 0, id: other };
     const ch = this.characters.get(id)!;
@@ -241,7 +277,8 @@ export class Game {
     rig.scale.set(s, 1 + (1 - s) * 0.6, s);
     if (d.t >= 1) {
       this.engine.scene.remove(rig);
-      ch.dispose();
+      // Freeing the GPU resources of the other operator is deferred: done mid-transition, it stalled a frame.
+      window.setTimeout(() => ch.dispose(), 5000);
       this.characters.delete(d.id);
       this.rigs.delete(d.id);
       this.stageFx.remove(beam, this.stageFx.getObjectByName(`ring-${d.id}`)!);
@@ -262,7 +299,9 @@ export class Game {
     const behind = new THREE.Vector3(0, 0, 0);
     const pitch = cam.pitch;
     behind.set(Math.sin(cam.yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(cam.yaw) * Math.cos(pitch)).multiplyScalar(cam.distance);
-    const focus = player.position.clone().setY(player.position.y + cam.focusHeight);
+    // Same framing as the play camera (shoulder offset included): no jump when control is handed over.
+    const focus = player.position.clone().setY(player.position.y + cam.focusHeight)
+      .add(new THREE.Vector3(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)).multiplyScalar(cam.shoulder));
     const endPos = focus.clone().add(behind);
     camera.position.lerpVectors(tr.from, endPos, e);
     this.lookAtCurrent.lerpVectors(tr.fromLook, focus, e);
@@ -361,6 +400,7 @@ export class Game {
       tp.done = true;
       const to = this.world.arrival(tp.target, tp.from);
       this.world.setActive(tp.target);
+      this.engine.holdResolution(4);
       this.player!.teleport(to.position, to.yaw);
       this.accumulator = 0;
       if (!this.reducedMotion) this.cam!.arrive(); // establishing pull-in on the new island

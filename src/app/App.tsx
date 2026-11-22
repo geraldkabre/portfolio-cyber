@@ -64,7 +64,8 @@ export function App() {
       <div className="cv-flash" style={{ opacity: flash }} aria-hidden="true" />
       {phase === 'gateway' && <Gateway onImmersive={() => startImmersive(true)} />}
       {(phase === 'boot' || phase === 'loading') && <LoadingScreen />}
-      {phase === 'select' && <SelectScreen />}
+      {/* The selection screen fades out while the camera swings behind the operator (no abrupt cut). */}
+      {(phase === 'select' || phase === 'entering') && <SelectScreen leaving={phase === 'entering'} />}
       {(phase === 'play' || phase === 'entering') && <Hud />}
       <Panels />
       {phase === 'error' && <ErrorScreen />}

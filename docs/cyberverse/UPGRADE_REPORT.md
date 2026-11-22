@@ -148,7 +148,7 @@ Corrections :
 ## 7. Mise à jour du soir — mode recruteur en « mondes » (22/11/2026)
 
 À ta demande :
-- **Description courte** : « Cybersecurity graduate passionate about network security, AI security, and building practical solutions to real-world security challenges. » Elle remplace le résumé long, dans le mode recruteur et dans le dossier 3D.
+- **Description courte** : « Cybersecurity graduate passionate about network security and building practical solutions to real-world security challenges. » (sans « AI security », à ta demande) Elle remplace le résumé long, dans le mode recruteur et dans le dossier 3D.
 - **Chaque monde ouvre sa propre page** (`/recruiter/#/education`…), au lieu de faire défiler vers le bas de la page :
   - **transition au ralenti** : un cercle s'ouvre depuis le disque, va vite, ralentit fortement au milieu, puis remplit l'écran (1,9 s, ease GSAP *SlowMo*). Pendant ce temps, l'anneau derrière avance et se floute, et le contenu apparaît en passant du flou au net ;
   - **navigation** : flèches ← → (boutons et clavier), « All worlds », Échap ou le bouton Retour du navigateur referment la page et ramènent ce monde en haut de l'anneau ;
@@ -230,3 +230,42 @@ Causes trouvées à la trace de performance et corrigées :
 | Interface | 17 / 17 |
 | Parcours 3D, NEON FIGHTER + et Cyber JT | 32 / 32 chacun (61,5 et 60,5 images/s) |
 | Tactile | 7 / 7 |
+
+---
+
+## 9. Corrections du 23/11/2026
+
+- **Textes** :
+  - « Three years of engineering » (au lieu de « Four ») ;
+  - « AI security » retiré de la description, partout (pages, balises de description, tests).
+- **Bouton Map** : l'indication « Click the scene to look around… » passe sous la barre du haut et ne touche plus les boutons.
+- **Clignement à l'entrée dans le monde 3D**, causes trouvées par mesure image par image et trace du navigateur :
+  1. **Interface** : l'écran de sélection disparaissait d'un coup et l'interface du jeu surgissait dans la même image. Les deux passent maintenant en fondu.
+  2. **Shaders** : sous Windows (ANGLE / Direct3D), un shader n'est terminé qu'au premier dessin réel d'un objet, d'où des gels de 100 à 300 ms pendant le travelling. Un tour de caméra invisible dessine la place pendant l'écran de chargement, objets cachés compris (ombre de contact, colonnes des terminaux).
+  3. **Résolution adaptative** :
+     - le redimensionnement se faisait juste après un rendu, ce qui effaçait l'écran pendant une image ; il se fait maintenant au début de l'image suivante ;
+     - la résolution est gelée pendant les premières secondes d'une nouvelle vue ;
+     - elle descend en une seule étape au lieu d'un escalier de saccades.
+  4. **Petit saut de caméra** à la fin du travelling (décalage d'épaule) : supprimé.
+  5. **Démarche et second opérateur** : le calibrage de la démarche est fait pendant le chargement ; la libération du second opérateur est différée.
+
+  Mesure : les gels de 326, 132 et 111 ms pendant l'entrée deviennent 60 à 90 ms.
+
+  Contrepartie : l'écran de chargement dure environ 5 s de plus sur ce PC. C'est le premier dessin complet de la scène, qui figeait auparavant l'écran de sélection.
+- **Sécurité** :
+  - en-têtes HTTP complets, communs au serveur local (`security-headers.mjs`) et à Netlify (`netlify.toml`) ;
+  - politique de sécurité du contenu (CSP) stricte, HSTS et COOP ajoutés ;
+  - tous les tests passent sous cette politique.
+- **Téléphone** : le serveur local est accessible depuis le réseau Wi-Fi pour un essai sur un vrai appareil.
+
+### Vérifications (version de production, sous CSP)
+| Suite | Résultat |
+|---|---|
+| Parcours 3D, NEON FIGHTER + et Cyber JT | 32 / 32 chacun |
+| Interface | 17 / 17 |
+| Tactile | 7 / 7 |
+| Démarche | 25 / 25 |
+| Mondes du mode recruteur | 23 / 24 |
+| Anneau Visionaries | non relancé (code inchangé) |
+
+Pour les mondes, le contrôle de fluidité du changement de monde varie selon la charge de la machine : p95 entre 21 et 28 ms pour un seuil de 25.

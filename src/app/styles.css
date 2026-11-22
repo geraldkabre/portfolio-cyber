@@ -74,7 +74,7 @@ a { color: var(--cyan); }
   box-shadow: 0 0 22px rgba(0, 229, 255, 0.2); animation: cv-rise 0.25s ease-out; font-size: 0.95rem;
 }
 @keyframes cv-rise { from { opacity: 0; transform: translate(-50%, 8px); } }
-.cv-look-hint { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); color: var(--text-dim); font-size: 0.78rem; background: rgba(7, 11, 24, 0.55); padding: 0.35rem 0.8rem; border-radius: 999px; }
+.cv-look-hint { position: absolute; left: 50%; top: 74px; transform: translateX(-50%); white-space: nowrap; color: var(--text-dim); font-size: 0.78rem; background: rgba(7, 11, 24, 0.55); padding: 0.35rem 0.8rem; border-radius: 999px; }
 .cv-controls {
   position: absolute; left: 18px; bottom: 18px; display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; max-width: min(640px, calc(100% - 36px));
   padding: 0.6rem 0.85rem; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); font-size: 0.78rem;
@@ -250,3 +250,14 @@ a { color: var(--cyan); }
 /* Taller than a small phone: start at the top and scroll (auto margins centre it whenever it fits). */
 .cv-gateway { place-items: start center; }
 .cv-gateway-inner { margin-block: auto; }
+
+/* Room for both the location chip and the HUD buttons on mid-size screens: the hint only shows where it fits. */
+@media (max-width: 1100px) { .cv-look-hint { top: 70px; font-size: 0.72rem; } }
+
+/* Entering the world: the selection UI fades out and the HUD fades in (no blink). */
+.cv-select { transition: opacity 0.45s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+.cv-select.is-leaving { opacity: 0; transform: scale(0.985); pointer-events: none; }
+.cv-select.is-leaving > * { pointer-events: none; }
+.cv-hud { animation: cv-hud-in 0.7s ease 0.35s both; }
+@keyframes cv-hud-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cv-select, .cv-hud { transition: none; animation: none; } }

@@ -6,10 +6,10 @@ const OPERATORS: { id: OperatorId; code: string; name: string; tagline: string; 
   { id: 'male', code: 'OPERATOR 02', name: 'CYBER JT', tagline: 'Techwear field operator', credit: 'VRoid model by Jonh Tinoco · CYBERVERSE edition' },
 ];
 
-export function SelectScreen() {
+export function SelectScreen({ leaving = false }: { leaving?: boolean }) {
   const hovered = useUI((s) => s.hovered);
   return (
-    <div className="cv-select">
+    <div className={`cv-select${leaving ? ' is-leaving' : ''}`} aria-hidden={leaving || undefined}>
       <header className="cv-select-head">
         <p className="cv-kicker">SECURE UPLINK ESTABLISHED</p>
         <h1 className="cv-title">Choose your operator</h1>

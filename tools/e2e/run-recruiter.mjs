@@ -13,7 +13,7 @@ const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok: !!ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const WORLDS = ['profile', 'education', 'experience', 'projects', 'certifications', 'rootme', 'skills', 'languages', 'contact'];
-const SUMMARY = 'Cybersecurity graduate passionate about network security, AI security, and building practical solutions to real-world security challenges.';
+const SUMMARY = 'Cybersecurity graduate passionate about network security and building practical solutions to real-world security challenges.';
 const browser = await chromium.launch({ executablePath: EDGE, headless: false, args: [...GPU_ARGS, '--window-size=1440,900'] });
 
 async function open(viewport, extra = {}) {

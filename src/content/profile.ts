@@ -32,8 +32,8 @@ export const PROFILE = {
   current: 'Currently studying Mandarin Chinese at Qingdao Binhai University, China (since March 2026)',
   /** The owner's own one-line introduction (22/11/2026). */
   summary:
-    'Cybersecurity graduate passionate about network security, AI security, and building practical solutions to ' +
-    'real-world security challenges.',
+    'Cybersecurity graduate passionate about network security and building practical solutions to real-world ' +
+    'security challenges.',
   languages: [
     { name: 'French', level: 'Native' },
     { name: 'English', level: 'B2 (Duolingo English Test 110)' },
