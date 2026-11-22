@@ -1,0 +1,161 @@
+/* Visionaries — a revolving ring of liquid-glass scenes (docs/cyberverse/pantheon.md).
+   One palette in every theme: the dark scene art sets the contrast, so the ink is always light. */
+@property --vis-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #7cadbb;
+}
+
+.vis-root {
+  --vis-stage: #0b0908;
+  --vis-ink: #f3ece0;
+  --vis-ink-soft: rgba(243, 236, 224, 0.6);
+  --vis-chrome: rgba(243, 236, 224, 0.5);
+  --vis-vignette: radial-gradient(125% 100% at 50% 44%, transparent 32%, rgba(7, 5, 4, 0.5) 72%, rgba(5, 4, 3, 0.9) 100%);
+  --vis-sans: "Geist", "Segoe UI", system-ui, -apple-system, sans-serif;
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--vis-stage);
+  color: var(--vis-ink);
+  font-family: var(--vis-sans);
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  touch-action: pan-y; /* vertical swipes scroll the page; horizontal drags turn the ring */
+  overscroll-behavior-x: contain; /* a horizontal trackpad swipe must not trigger history navigation */
+  transition: --vis-accent 1s ease;
+}
+@supports (height: 100svh) { .vis-root { height: 100svh; } }
+.vis-root:active, .vis-root.is-dragging { cursor: grabbing; }
+
+/* ---------- backdrop */
+.vis-bgwrap { position: absolute; inset: 0; will-change: opacity, transform; }
+.vis-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-repeat: no-repeat; background-position: 50% 50%;
+  filter: brightness(0.6) saturate(0.95);
+  will-change: opacity, transform;
+  animation: vis-kenburns 34s ease-in-out infinite alternate;
+}
+@keyframes vis-kenburns { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.04) translate(-0.6%, -0.8%); } }
+.vis-vignette { position: absolute; inset: 0; background: var(--vis-vignette); pointer-events: none; }
+.vis-glow {
+  position: absolute; left: 50%; top: 55.5%; width: 42vmin; height: 42vmin; transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--vis-accent) 40%, rgba(229, 214, 184, 0.45)), transparent);
+  filter: blur(44px); mix-blend-mode: screen; pointer-events: none; opacity: 0;
+}
+.vis-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+
+/* ---------- ring */
+.vis-orbit { position: absolute; inset: 0; }
+.vis-med {
+  position: absolute; left: 50%; top: 50%;
+  width: 150px; height: 150px; /* overwritten to d0 px by the engine; scale() does the rest */
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(240, 244, 250, 0.04);
+  cursor: pointer;
+  will-change: transform, opacity;
+  opacity: 0;
+  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.45), 0 3px 10px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.vis-root.is-dragging .vis-med { cursor: grabbing; }
+/* Live refraction (Chromium) — the shared Snell's-law displacement filter. */
+.is-glass-native .vis-med { backdrop-filter: url(#vis-glass) blur(0.4px) saturate(1.16) brightness(0.97); }
+/* Frosted fallback (Safari, Firefox, weak GPUs): rim, specular and shadow still render. */
+.is-glass-frost .vis-med { -webkit-backdrop-filter: blur(3px) saturate(1.12) brightness(0.95); backdrop-filter: blur(3px) saturate(1.12) brightness(0.95); }
+/* No GPU lens work while the stage is off screen. */
+.vis-root.is-offscreen .vis-med { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+.vis-med-face {
+  position: absolute; inset: 16%; border-radius: 50%; overflow: hidden; background: #0b0907;
+  box-shadow: inset 0 0 7px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.16), 0 2px 6px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.vis-med-img { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; }
+.vis-med-rim {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 8%, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 40%),
+    radial-gradient(circle at 72% 80%, rgba(255, 250, 242, 0.12), rgba(255, 250, 242, 0) 30%);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -7px 16px rgba(0, 0, 0, 0.26),
+    0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+/* ---------- centred title (centred on the ring, which sits 5.5 % below the stage centre) */
+.vis-title {
+  position: absolute; left: 0; right: 0; top: 55.5%; transform: translateY(-50%);
+  text-align: center; color: var(--vis-ink); pointer-events: none; z-index: 60; padding: 0 24px;
+}
+.vis-title-name {
+  font-family: "Poppins", system-ui, sans-serif; font-weight: 500;
+  font-size: clamp(21px, 3vw, 37px); line-height: 1.16; letter-spacing: 0.015em; margin: 0;
+  max-width: min(46vw, 470px); margin-inline: auto; text-wrap: balance;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.55);
+  animation: vis-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.vis-title-sub {
+  margin: 16px 0 0; font-size: 12px; letter-spacing: 0.32em; text-indent: 0.32em;
+  text-transform: uppercase; color: var(--vis-ink-soft); min-height: 1.2em;
+  max-width: min(46vw, 470px); margin-inline: auto; text-wrap: balance; line-height: 1.6;
+  animation: vis-fade 0.55s ease 0.12s both;
+}
+.vis-cta {
+  display: inline-flex; align-items: center; gap: 0.35em; margin-top: 18px; padding: 0.42em 0.95em;
+  border-radius: 999px; border: 1px solid rgba(243, 236, 224, 0.22); background: rgba(10, 8, 6, 0.28);
+  color: var(--vis-ink); font: 500 11px/1.2 var(--vis-sans); letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none;
+  pointer-events: auto; cursor: pointer; backdrop-filter: blur(6px);
+  animation: vis-fade 0.55s ease 0.24s both;
+  transition: background 0.25s, border-color 0.25s;
+}
+.vis-cta:hover { background: rgba(243, 236, 224, 0.1); border-color: rgba(243, 236, 224, 0.42); }
+.vis-cta:focus-visible, .vis-chev:focus-visible, .vis-scroll:focus-visible { outline: 2px solid var(--vis-ink); outline-offset: 3px; }
+@keyframes vis-rise { from { opacity: 0; transform: translateY(26px); filter: blur(8px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+@keyframes vis-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ---------- chevrons */
+.vis-chev {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; padding: 0;
+  color: var(--vis-ink); background: rgba(10, 8, 6, 0.34); border: 1px solid rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.04) brightness(0.92); backdrop-filter: blur(8px) saturate(1.04) brightness(0.92);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+  opacity: 0.72; cursor: pointer; z-index: 300;
+  transition: background 0.25s, transform 0.25s, opacity 0.25s;
+}
+.vis-chev:hover { opacity: 1; background: rgba(10, 8, 6, 0.5); }
+.vis-chev:active { transform: translateY(-50%) scale(0.92); }
+.vis-chev-left { left: clamp(14px, 3vw, 40px); }
+.vis-chev-right { right: clamp(14px, 3vw, 40px); }
+
+/* ---------- way into the full portfolio */
+.vis-scroll {
+  position: absolute; left: 50%; bottom: clamp(14px, 3.2vh, 30px); transform: translateX(-50%); z-index: 300;
+  display: inline-flex; gap: 0.5em; align-items: center; padding: 0.4em 0.8em;
+  color: var(--vis-chrome); font: 500 11px/1 var(--vis-sans); letter-spacing: 0.24em; text-transform: uppercase; text-decoration: none;
+  transition: color 0.25s;
+}
+.vis-scroll:hover { color: var(--vis-ink); }
+.vis-scroll span { display: inline-block; animation: vis-nudge 2.4s ease-in-out infinite; }
+@keyframes vis-nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+
+/* ---------- phones (shorter side < 640 px, set by the engine) */
+.vis-root.is-phone .vis-chev { display: none; }
+.vis-root.is-phone .vis-title-name { font-size: clamp(19px, 5.2vw, 26px); max-width: 50vw; }
+.vis-root.is-phone .vis-title-sub { font-size: 10px; letter-spacing: 0.24em; text-indent: 0.24em; max-width: 52vw; margin-top: 12px; }
+.vis-root.is-phone .vis-cta { margin-top: 14px; font-size: 10px; }
+@media (max-width: 640px) { .vis-chev { display: none; } }
+
+/* ---------- reduced motion: settled instantly, no Ken Burns, no wobble, no auto-rotate (engine) */
+@media (prefers-reduced-motion: reduce) {
+  .vis-bg { animation: none; }
+  .vis-title-name, .vis-title-sub, .vis-cta { animation-duration: 0.01ms; animation-delay: 0s; }
+  .vis-scroll span { animation: none; }
+  .vis-root { transition: none; }
+}
+@media print { .vis-root { display: none; } }

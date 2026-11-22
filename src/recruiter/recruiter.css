@@ -18,10 +18,26 @@ img { max-width: 100%; }
 .rc-skip:focus { left: 12px; }
 .rc-hero { padding: clamp(24px, 5vw, 48px) 0 24px; border-bottom: 1px solid var(--line); }
 .rc-hero .sec { padding-top: 12px; }
-.rc-hero .sec-name { font-size: clamp(1.9rem, 5vw, 3rem); font-weight: 400; }
-.rc-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; }
-.rc-switch { font-size: 0.88rem; padding: 0.4rem 0.85rem; border: 1px solid rgba(0, 229, 255, 0.45); border-radius: 999px; text-decoration: none; }
-.rc-switch:hover { background: rgba(0, 229, 255, 0.08); }
+.rc-hero .sec-name { font-size: clamp(1.9rem, 5vw, 3rem); font-weight: 400; margin: 0; line-height: 1.15; }
+/* Top chrome over the Visionaries stage (warm ink of the stage, no saturated colour). */
+.rc-chrome {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 400; display: flex; justify-content: space-between; align-items: center;
+  gap: 0.75rem; padding: clamp(14px, 2.6vh, 26px) clamp(16px, 3vw, 40px); pointer-events: none;
+  font-family: "Geist", var(--font);
+}
+.rc-chrome > * { pointer-events: auto; }
+.rc-brand { margin: 0; font-size: 11px; font-weight: 500; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(243, 236, 224, 0.72); }
+.rc-switch {
+  font-size: 12px; letter-spacing: 0.04em; padding: 0.45rem 0.9rem; border: 1px solid rgba(243, 236, 224, 0.24); border-radius: 999px;
+  color: #f3ece0; background: rgba(10, 8, 6, 0.3); text-decoration: none; backdrop-filter: blur(8px); transition: background 0.25s, border-color 0.25s;
+}
+.rc-switch:hover { background: rgba(243, 236, 224, 0.1); border-color: rgba(243, 236, 224, 0.45); }
+@media (max-width: 520px) {
+  .rc-brand { font-size: 10px; letter-spacing: 0.22em; }
+  .rc-brand span { display: none; }
+  .rc-switch { font-size: 11px; padding: 0.4rem 0.75rem; }
+  .rc-switch span { display: none; }
+}
 .rc-nav { position: sticky; top: 0; z-index: 5; background: rgba(7, 11, 24, 0.88); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
 .rc-nav .rc-wrap { display: flex; gap: 0.15rem; overflow-x: auto; scrollbar-width: none; }
 .rc-nav a { flex: none; padding: 0.85rem 0.65rem; color: var(--text-dim); text-decoration: none; font: 600 0.76rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
@@ -33,7 +49,7 @@ img { max-width: 100%; }
   @page { size: A4; margin: 12mm; }
   :root { --text: #111827; --text-dim: #4b5563; --ice: #0b1326; --cyan: #0b5cad; --line: #d1d5db; }
   body { background: #fff !important; font-size: 10pt; }
-  .rc-nav, .rc-skip, .rc-footer, .rc-switch, .sec-figures, .sec-gh, .sec-lightbox, .sec-cert button { display: none !important; }
+  .rc-nav, .rc-skip, .rc-footer, .rc-chrome, .sec-figures, .sec-gh, .sec-lightbox, .sec-cert button { display: none !important; }
   .sec { padding: 8pt 0 0; break-inside: avoid-page; }
   .sec-card, .sec-timeline li, .sec-cert, .sec-langs li, .sec-contact li { background: none !important; }
 }

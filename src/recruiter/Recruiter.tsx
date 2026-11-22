@@ -3,6 +3,7 @@ import {
   CertificatesSection, ContactSection, EducationSection, ExperienceSection, LanguagesSection, Lightbox, ProfileSection,
   ProjectsSection, ResearchSection, RootMeSection, SkillsSection,
 } from '../content/Sections';
+import { Visionaries } from './visionaries/Visionaries';
 
 const NAV = [
   ['profile', 'Profile'], ['education', 'Education'], ['experience', 'Experience'], ['projects', 'Projects'], ['research', 'Thesis'],
@@ -14,14 +15,15 @@ export function Recruiter() {
   const [zoom, setZoom] = useState<{ src: string; alt: string } | null>(null);
   return (
     <>
-      <a className="rc-skip" href="#main">Skip to content</a>
+      <a className="rc-skip" href="#profile">Skip to the portfolio</a>
+      <div className="rc-chrome">
+        <p className="rc-brand">CYBERVERSE<span> · Recruiter Mode</span></p>
+        <a className="rc-switch" href="/?mode=immersive"><span>Immersive </span>3D campus →</a>
+      </div>
+      <Visionaries />
       <header className="rc-hero">
         <div className="rc-wrap">
-          <div className="rc-bar">
-            <p className="cv-kicker">CYBERVERSE · Recruiter Mode</p>
-            <a className="rc-switch" href="/?mode=immersive">Switch to the immersive 3D campus →</a>
-          </div>
-          <ProfileSection heading={false} />
+          <ProfileSection heading={false} nameAsTitle />
         </div>
       </header>
       <nav className="rc-nav" aria-label="Sections">

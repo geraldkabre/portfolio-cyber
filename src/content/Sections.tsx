@@ -47,15 +47,16 @@ export function Avatar({ size = 112 }: { size?: number }) {
   );
 }
 
-export function ProfileSection({ heading = true }: { heading?: boolean }) {
+export function ProfileSection({ heading = true, nameAsTitle = false }: { heading?: boolean; nameAsTitle?: boolean }) {
   const email = PROFILE.links.email;
+  const Name = nameAsTitle ? 'h1' : 'p';
   return (
-    <section className="sec" id="profile" aria-labelledby="h-profile">
+    <section className="sec" id="profile" {...(heading ? { 'aria-labelledby': 'h-profile' } : { 'aria-label': 'Profile' })}>
       {heading && <Head id="profile" title="Profile" github={GITHUB.readme} />}
       <div className="sec-profile">
         <Avatar />
         <div>
-          <p className="sec-name">{PROFILE.name} <FlagBF size={20} /></p>
+          <Name className="sec-name">{PROFILE.name} <FlagBF size={20} /></Name>
           <p className="sec-title">{PROFILE.title} · {PROFILE.focus}</p>
           <p className="sec-dim">{PROFILE.location} · {PROFILE.current}</p>
         </div>
