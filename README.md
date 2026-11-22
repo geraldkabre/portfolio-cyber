@@ -6,6 +6,8 @@
 
 Computer engineering graduate specialized in **information and industrial systems security**, from Burkina Faso. I design and secure network infrastructures and practise offensive security through CTF challenges.
 
+**Live portfolio:** [geraldkabreportfolio.netlify.app](https://geraldkabreportfolio.netlify.app) — an interactive 3D campus, plus a [Recruiter Mode](https://geraldkabreportfolio.netlify.app/recruiter/) for a quick read.
+
 ---
 
 ## Education

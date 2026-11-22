@@ -181,7 +181,7 @@ Corrections faites au passage :
 | Tactile | **7 / 7** |
 | Démarche à 60, 30 et 20 images/s | **25 / 25** |
 
-Performance : 54,6 images/s (NEON FIGHTER +) et 50,5 (Cyber JT) sur la course scriptée, contre 67,9 à midi **pour le même code de démarche**. La machine était chargée pendant ces mesures : uTorrent tournait, avec une charge de 27 % au repos. Une mesure sur une machine au repos reste à faire.
+Performance : 54,6 images/s (NEON FIGHTER +) et 50,5 (Cyber JT) sur la course scriptée, contre 67,9 à midi **pour le même code de démarche**. La machine était chargée pendant ces mesures (27 % de charge au repos). Une mesure sur une machine au repos reste à faire.
 
 ---
 
@@ -275,3 +275,15 @@ Pour les mondes, le contrôle de fluidité du changement de monde varie selon la
 - **Certificat Duolingo** : un clic sur « B2 · Duolingo 110 » ouvre le certificat (copie WebP de la capture du propriétaire) avec un lien « Verify on Duolingo ». Échap ou × ne ferme que la visionneuse. La capture d'origine reste hors de Git.
 - **Adresse prévue** : https://geraldkabreportfolio.netlify.app (sous-domaine Netlify gratuit).
 - Vérifications : mondes 26 / 26, parcours 3D 32 / 32, tactile 7 / 7.
+
+## 11. Vérification avant déploiement (23/11/2026)
+- **Correction** : l'entrée de l'anneau Visionaries attend que le navigateur rende des images régulières (comme les autres transitions). Sur une machine froide ou chargée, les premières images (compilation du filtre de verre) gelaient assez longtemps pour que GSAP « avale » l'enroulement.
+- Build de production OK. Tous les liens GitHub du site pointent vers des fichiers présents sur `main`.
+
+| Suite (production, machine chargée à 42 %) | Résultat |
+|---|---|
+| Visionaries | 51 / 51 (un second passage : 49 / 51, gel ponctuel pendant la rotation) |
+| Mondes du mode recruteur | 24 / 26 : seuls les deux seuils de fluidité (p95 25–28 ms pour 25) échouent, sensibles à la charge |
+| Parcours 3D, NEON FIGHTER + et Cyber JT | 32 / 32 chacun |
+| Interface | 17 / 17 |
+| Tactile | 7 / 7 |
