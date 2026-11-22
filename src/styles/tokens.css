@@ -1,0 +1,31 @@
+/* CYBERVERSE design tokens and shared primitives (3D experience + Recruiter Mode). */
+:root {
+  color-scheme: dark;
+  --navy-950: #070b18;
+  --navy-900: #0b1326;
+  --navy-800: #121d38;
+  --slate: #1e2a48;
+  --cyan: #00e5ff;
+  --eblue: #2f7bff;
+  --violet: #8b5cff;
+  --ice: #ddf6ff;
+  --text: #e6f4ff;
+  --text-dim: #9fb4d6;
+  --line: rgba(120, 210, 255, 0.22);
+  --glass: rgba(9, 16, 34, 0.72);
+  --glass-strong: rgba(7, 12, 26, 0.88);
+  --radius: 10px;
+  --font: "Segoe UI", "Inter", system-ui, -apple-system, Roboto, sans-serif;
+  --mono: "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, monospace;
+}
+
+
+kbd {
+  display: inline-block; min-width: 1.6em; padding: 0.1em 0.45em; margin: 0 0.1em; border: 1px solid var(--line);
+  border-bottom-width: 2px; border-radius: 5px; background: rgba(20, 34, 66, 0.7); color: var(--ice);
+  font: 600 0.78rem/1.4 var(--mono); text-align: center;
+}
+.cv-mono { font-family: var(--mono); letter-spacing: 0.04em; }
+.cv-muted { color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; }
+.cv-kicker { margin: 0 0 0.35rem; font: 600 0.72rem/1.2 var(--mono); letter-spacing: 0.28em; color: var(--cyan); text-transform: uppercase; }
+.cv-title { margin: 0; font-weight: 300; font-size: clamp(1.6rem, 3.2vw, 2.6rem); letter-spacing: 0.06em; color: var(--ice); }

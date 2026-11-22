@@ -13,3 +13,8 @@ dist/
 
 # Local test and capture outputs
 /test-results/
+
+# Local environment (contact e-mail, never committed)
+.env
+.env.*
+!.env.example

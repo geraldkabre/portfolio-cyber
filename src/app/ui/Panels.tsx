@@ -57,7 +57,7 @@ function Dossier() {
       <div className="cv-links">
         <a href={PROFILE.links.github} target="_blank" rel="noreferrer">GitHub</a>
         <a href={PROFILE.links.rootme} target="_blank" rel="noreferrer">Root-Me</a>
-        <a href={`mailto:${PROFILE.links.email}`}>{PROFILE.links.email}</a>
+        {PROFILE.links.email && <a href={`mailto:${PROFILE.links.email}`}>{PROFILE.links.email}</a>}
       </div>
     </PanelShell>
   );

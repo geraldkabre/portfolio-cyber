@@ -77,8 +77,8 @@ function ErrorScreen() {
         <h1>The 3D campus could not start</h1>
         <p>{error}</p>
         <p className="cv-muted">
-          You can still reach {PROFILE.name} on <a href={PROFILE.links.github} target="_blank" rel="noreferrer">GitHub</a> or by
-          email at <a href={`mailto:${PROFILE.links.email}`}>{PROFILE.links.email}</a>.
+          You can still reach {PROFILE.name} on <a href={PROFILE.links.github} target="_blank" rel="noreferrer">GitHub</a> or
+          use the <a href="/recruiter/">Recruiter Mode</a> (no 3D required).
         </p>
       </div>
     </div>
