@@ -7,6 +7,7 @@
  * touches. React re-renders only when the focal scene changes.
  */
 import gsap from 'gsap';
+import { whenSmooth } from '../../content/WorldContent';
 import { GlassFilter, detectGlassMode, type GlassMode } from './glass';
 import {
   VIS, backdropOpacity, clamp, discState, easeInOutCubic, easeOutCubic, focalIndex, layout, smoothstep, wobble, wrapOff,
@@ -91,6 +92,7 @@ export class VisionariesEngine {
   private wheel = { acc: 0, lastTime: -Infinity, lastMag: 0, locked: false, peaked: false };
   private perf = { frames: 0, sum: 0, last: 0 };
   private timeline: gsap.core.Timeline | null = null;
+  private cancelSmooth: (() => void) | null = null;
   private cleanups: Array<() => void> = [];
   private bakeTimer = 0;
   private autoTimer = 0;
@@ -134,6 +136,7 @@ export class VisionariesEngine {
     this.setTicking(false);
     window.clearInterval(this.autoTimer);
     window.clearTimeout(this.bakeTimer);
+    this.cancelSmooth?.();
     this.timeline?.kill();
     gsap.killTweensOf(this.bgwrap);
     this.cleanups.forEach((f) => f());
@@ -160,8 +163,14 @@ export class VisionariesEngine {
       this.cb.onReveal();
       return;
     }
-    this.entranceStart = performance.now();
     gsap.set(this.bgwrap, { opacity: 0, scale: 1.12, filter: 'blur(20px)' });
+    // The first frames of the page compile the glass filter and raster the backdrop (long frames on a cold or busy
+    // machine). The timeline starts once frames are regular again, so the wind-up is never swallowed by a stall.
+    this.cancelSmooth = whenSmooth(() => { this.cancelSmooth = null; if (!this.destroyed) this.playEntrance(); }, 700);
+  }
+
+  private playEntrance() {
+    this.entranceStart = performance.now();
     const tl = gsap.timeline({ delay: VIS.ENTER_DELAY, onComplete: () => this.finishEntrance() });
     tl.to(this.bgwrap, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: VIS.ENTER_BG_DUR, ease: 'power3.out', clearProps: 'filter,transform' }, 0);
     tl.to(this.st, { enter: 1, duration: VIS.ENTER_DUR, ease: 'power4.out' }, 0);
