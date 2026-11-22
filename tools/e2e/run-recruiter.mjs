@@ -103,7 +103,9 @@ try {
       if (id === 'languages') {
         const ok1 = ['French', 'Native', 'English', 'B2 · Duolingo 110', 'Chinese', 'Learning'].every((t) => w.text.includes(t));
         await page.click('.w-layer .w-zoom');
-        await sleep(500);
+        // Over the network (deployed site) the picture can take longer than locally: wait for it, not a fixed delay.
+        await page.waitForFunction(() => { const im = document.querySelector('.w-layer .w-viewer img'); return im && im.complete && im.naturalWidth > 0; }, null, { timeout: 5000 }).catch(() => {});
+        await sleep(300);
         const dlg = await page.evaluate(() => { const d = document.querySelector('.w-layer .w-viewer'); const im = d?.querySelector('img'); return { open: !!d?.open, loaded: !!im && im.complete && im.naturalWidth > 0, verify: d?.querySelector('a')?.getAttribute('href') }; });
         await shot(page, 'desktop-duolingo.png');
         await page.keyboard.press('Escape');

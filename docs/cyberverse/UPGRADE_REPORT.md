@@ -287,3 +287,17 @@ Pour les mondes, le contrôle de fluidité du changement de monde varie selon la
 | Parcours 3D, NEON FIGHTER + et Cyber JT | 32 / 32 chacun |
 | Interface | 17 / 17 |
 | Tactile | 7 / 7 |
+
+## 12. Déploiement (23/11/2026)
+- **En ligne** : https://geraldkabreportfolio.netlify.app (mode recruteur : `/recruiter/`), déployé depuis `main` (d90a12a) avec la CLI Netlify.
+- Netlify injectait un script « badge » sur l'offre gratuite ; la CSP stricte bloquait son code en ligne (erreur dans la console). Badge désactivé dans les réglages du site (`built_with_badge_enabled: false`).
+- Test du certificat Duolingo : il attend le chargement réel de l'image au lieu de 500 ms fixes (trop court par le réseau).
+
+| Suite, contre le site en ligne | Résultat |
+|---|---|
+| Interface | 17 / 17 |
+| Tactile | 7 / 7 |
+| Parcours 3D | 32 / 32 |
+| Visionaries | 51 / 51 |
+| Mondes du mode recruteur | 26 / 26 (un passage précédent : seuil de fluidité dépassé, p95 27,8 ms pour 25) |
+
