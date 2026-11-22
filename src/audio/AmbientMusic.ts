@@ -78,6 +78,11 @@ class AmbientEngine {
     return this.playing;
   }
 
+  /** Test hook: audio context state and number of beats scheduled so far. */
+  get diagnostics() {
+    return { state: this.ctx?.state ?? 'none', beats: this.beat, playing: this.playing };
+  }
+
   /** Short synthesised UI / world sound effects. */
   sfxPlay(kind: 'click' | 'open' | 'portal' | 'door' | 'travel') {
     if (!this.ctx || !this.settings.sfx) return;
@@ -281,3 +286,4 @@ class AmbientEngine {
 
 /** Single shared instance (the UI controls it, the game triggers sound effects). */
 export const ambient = new AmbientEngine();
+(window as unknown as { __cvAudio?: AmbientEngine }).__cvAudio = ambient;

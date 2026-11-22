@@ -25,6 +25,9 @@ try {
   check('nothing 3D is downloaded before the choice', !engineLoaded);
   await page.screenshot({ path: path.join(out, 'gateway.png') });
   await page.locator('button.cv-mode').click();
+  await sleep(2500);
+  const audio = await page.evaluate(() => window.__cvAudio?.diagnostics);
+  check('ambient music starts after choosing Immersive Mode', audio?.state === 'running' && audio.beats > 0, JSON.stringify(audio));
   await page.waitForFunction(() => window.__cv && window.__cv.state().phase === 'select', null, { timeout: 180000 });
   // Mouse: hover the second card, click it (selects), click again / primary button (confirms).
   const cards = page.locator('.cv-card');

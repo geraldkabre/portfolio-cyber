@@ -96,3 +96,11 @@ Voir **`MILESTONE_3_REPORT.md`** (résultats, captures, mesures) et **`ARCHITECT
 - Jalon 6 : mode recruteur `/recruiter` (sans moteur 3D), photo professionnelle à fournir, CV téléchargeable.
 - Jalon 7 : musique d'ambiance originale ou sous licence vérifiée, effets sonores, réglages audio.
 - Jalon 8 : commandes tactiles, textures KTX2 (personnages ≈ 140 Mo GPU chacun), fallback WebGL complet, déploiement Netlify (avec votre accord).
+
+## Mise à jour du 22/11/2026 — Finalisation (voir `FINALISATION.md`)
+- ✔ Écran de choix Mode recruteur / Mode immersif ; Mode recruteur complet (9 parties, liens GitHub partout).
+- ✔ Six districts construits et reliés par un anneau de portails ; carte du campus avec voyage rapide ; musique générative.
+- ✔ Déplacements fluidifiés (physique à pas fixe + interpolation, caméra, résolution adaptative stable).
+- ✔ Tests : 32 + 32 + 17 vérifications réussies sur la version de production.
+- ⏳ De votre côté : définir `VITE_CONTACT_EMAIL`, déposer `public/assets/profile/photo.jpg`, valider le push GitHub et le déploiement Netlify.
+- ➡ Pistes restantes : commandes tactiles (mobile), introduction cinématique (survol du campus), compression KTX2 des textures des personnages.
