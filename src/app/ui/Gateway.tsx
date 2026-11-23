@@ -67,8 +67,7 @@ export function Gateway({ onImmersive }: { onImmersive: () => void }) {
             <strong>The portfolio, straight away.</strong>
             <span>
               Nine short worlds on a ring of glass: profile, education, experience, projects, certifications, Root-Me,
-              skills, languages and contact. Tap one for its summary; every detail is one click away on GitHub. No 3D,
-              no sound, made for phones too.
+              skills, languages and contact. Tap one for its summary; every detail is one click away on GitHub.
             </span>
             <em>About a minute <i aria-hidden="true">→</i></em>
           </a>
@@ -80,7 +79,7 @@ export function Gateway({ onImmersive }: { onImmersive: () => void }) {
             <strong>Walk the 3D campus.</strong>
             <span>
               Choose an operator and explore the Sentinel Nexus: seven districts, the same summaries as Recruiter Mode,
-              a map for fast travel and a chill soundtrack. Keyboard and mouse on a computer, touch controls on phones.
+              a map for fast travel and a chill soundtrack.
             </span>
             <em>About 15 MB · sound on <i aria-hidden="true">→</i></em>
           </button>
