@@ -1,0 +1,124 @@
+/* Gateway — the mode choice, in the slow-motion design of Recruiter Mode (Ken Burns scene, giant word, blur-rise
+   lines, glass discs). Animations touch transform / opacity only; blur only on the small text lines. */
+.cv-gateway {
+  --gx: 0; --gy: 0;
+  --gw-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  isolation: isolate; background: #03050c; font-family: var(--w-display);
+}
+
+/* ---------- scene */
+.gw-bg {
+  position: fixed; inset: -4%; z-index: -3; pointer-events: none;
+  transform: translate3d(calc(var(--gx) * -22px), calc(var(--gy) * -16px), 0);
+  animation: gw-bg-in 3.2s var(--gw-ease) both;
+}
+.gw-bg-img {
+  position: absolute; inset: 0; background-size: cover; background-position: 50% 40%;
+  filter: brightness(0.5) saturate(1.05);
+  animation: gw-kenburns 38s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes gw-bg-in { from { opacity: 0; transform: scale(1.12); } }
+@keyframes gw-kenburns { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.07) translate(-1%, -1.2%); } }
+.gw-shade {
+  position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background:
+    radial-gradient(120% 95% at 50% 42%, rgba(3, 5, 12, 0.25) 10%, rgba(3, 5, 12, 0.78) 62%, rgba(3, 5, 12, 0.96) 100%),
+    linear-gradient(180deg, rgba(3, 5, 12, 0.55), transparent 30%, transparent 60%, rgba(3, 5, 12, 0.9));
+}
+/* Giant word behind the name, lit like the world pages; drifts against the pointer. */
+.gw-word {
+  position: fixed; left: 50%; top: 30%; z-index: -1; margin: 0; padding-top: 0.12em; white-space: nowrap; pointer-events: none;
+  font: 800 clamp(110px, 24vw, 420px)/0.8 var(--w-display); letter-spacing: -0.065em;
+  background: linear-gradient(100deg, rgba(47, 123, 255, 0.03) 0%, rgba(47, 123, 255, 0.1) 35%, rgba(0, 229, 255, 0.3) 62%, rgba(139, 92, 255, 0.28) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  translate: calc(-50% + var(--gx) * 30px) calc(-50% + var(--gy) * 18px);
+  animation: gw-word-in 3.6s var(--gw-ease) 0.1s both, gw-drift 16s ease-in-out 3.7s infinite alternate;
+  will-change: transform, opacity;
+}
+@keyframes gw-word-in { from { opacity: 0; transform: scale(1.18); letter-spacing: 0.02em; } }
+@keyframes gw-drift { from { transform: translateX(-1.5%); } to { transform: translateX(1.5%); } }
+.gw-pool {
+  position: fixed; left: 50%; bottom: 6%; z-index: -1; width: min(820px, 90vw); height: 140px; translate: -50% 0; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 229, 255, 0.5), transparent); filter: blur(40px); pointer-events: none;
+  animation: gw-fade 3s ease 1s both, gw-breathe 8s ease-in-out 4s infinite;
+}
+
+/* ---------- copy: each piece rises out of a blur, one after the other (--d = delay) */
+.gw-in { animation: gw-rise 1.6s var(--gw-ease) var(--d, 0s) backwards; }
+.cv-gateway .gw-name { margin: 0.2em 0 0.1em; font: 800 clamp(52px, 9vw, 132px)/0.88 var(--w-display); letter-spacing: -0.055em; color: #f4f8ff; }
+.gw-line { display: block; animation: gw-line 2s var(--gw-ease) var(--d, 0s) backwards; text-shadow: 0 4px 40px rgba(0, 0, 0, 0.5); }
+.gw-line.is-soft { color: rgba(244, 248, 255, 0.55); }
+@keyframes gw-line { from { opacity: 0; transform: translate3d(0, 0.45em, 0); filter: blur(14px); } 60% { filter: blur(0); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes gw-rise { from { opacity: 0; transform: translate3d(0, 22px, 0); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes gw-fade { from { opacity: 0; } }
+
+/* ---------- cards: glass, each with its disc(s) */
+.cv-gateway .cv-mode.gw-card {
+  position: relative; overflow: hidden; padding-top: 1.3rem;
+  background: rgba(8, 13, 28, 0.42); border: 1px solid rgba(160, 220, 255, 0.16);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  animation: gw-card 1.8s var(--gw-ease) var(--d, 0s) backwards;
+  transition: border-color 0.6s var(--gw-ease), transform 0.9s var(--gw-ease), box-shadow 0.9s var(--gw-ease), background 0.6s;
+}
+.cv-gateway .cv-mode.gw-card.is-immersive { background: linear-gradient(160deg, rgba(47, 123, 255, 0.2), rgba(8, 13, 28, 0.5)); border-color: rgba(0, 229, 255, 0.35); }
+@keyframes gw-card { from { opacity: 0; transform: translate3d(0, 48px, 0) scale(0.97); } }
+/* A light sweep crosses the card on hover, in slow motion. */
+.cv-gateway .cv-mode.gw-card::after {
+  content: ''; position: absolute; inset: -40% auto -40% -60%; width: 45%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(180, 240, 255, 0.12), transparent);
+  transform: translateX(0) rotate(8deg); opacity: 0; transition: transform 1.6s var(--gw-ease), opacity 0.6s;
+}
+.cv-gateway .cv-mode.gw-card:hover, .cv-gateway .cv-mode.gw-card:focus-visible {
+  transform: translate3d(0, -6px, 0); border-color: rgba(0, 229, 255, 0.6);
+  box-shadow: 0 34px 80px rgba(0, 0, 0, 0.5), 0 0 48px rgba(0, 229, 255, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.cv-gateway .cv-mode.gw-card:hover::after, .cv-gateway .cv-mode.gw-card:focus-visible::after { transform: translateX(420%) rotate(8deg); opacity: 1; }
+.cv-gateway .cv-mode em { display: inline-flex; gap: 0.4em; align-items: center; }
+.cv-gateway .cv-mode em i { font-style: normal; transition: transform 0.8s var(--gw-ease); }
+.cv-gateway .cv-mode:hover em i, .cv-gateway .cv-mode:focus-visible em i { transform: translateX(6px); }
+
+/* Glass discs, like the ring of Recruiter Mode. */
+.gw-disc {
+  position: relative; display: block; border-radius: 50%; overflow: hidden; flex: none;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.16), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.gw-disc img { display: block; width: 100%; height: 100%; object-fit: cover; transform: scale(1.2); transition: transform 2.4s var(--gw-ease); }
+.gw-disc::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 50% 8%, rgba(255, 255, 255, 0.34), transparent 40%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), inset 0 -8px 16px rgba(0, 0, 0, 0.3);
+}
+.cv-mode:hover .gw-disc img, .cv-mode:focus-visible .gw-disc img { transform: scale(1.38); }
+.gw-disc.is-big { width: 74px; height: 74px; margin-bottom: 0.2rem; animation: gw-float 7s ease-in-out infinite; }
+/* Three small discs turning slowly on an ellipse. */
+.gw-orbit { position: relative; display: block; width: 120px; height: 74px; margin-bottom: 0.2rem; }
+.gw-disc.is-small {
+  position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px;
+  animation: gw-orbit 14s linear calc(var(--i) * -14s / 3) infinite;
+}
+@keyframes gw-orbit {
+  0%   { transform: translate3d(0, 14px, 0) scale(1.15); z-index: 3; opacity: 1; }
+  25%  { transform: translate3d(38px, 0, 0) scale(0.85); z-index: 2; opacity: 0.85; }
+  50%  { transform: translate3d(0, -14px, 0) scale(0.62); z-index: 1; opacity: 0.6; }
+  75%  { transform: translate3d(-38px, 0, 0) scale(0.85); z-index: 2; opacity: 0.85; }
+  100% { transform: translate3d(0, 14px, 0) scale(1.15); z-index: 3; opacity: 1; }
+}
+.cv-mode:hover .gw-disc.is-small { animation-duration: 6s; }
+
+/* Phones: lighter blur on the cards, a smaller giant word. */
+@media (max-width: 640px) {
+  .gw-word { top: 22%; }
+  .cv-gateway .cv-mode.gw-card { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+}
+
+/* Reduced motion: everything in place at once, no drift. */
+@media (prefers-reduced-motion: reduce) {
+  .gw-bg, .gw-bg-img, .gw-word, .gw-pool, .gw-in, .gw-line, .cv-gateway .cv-mode.gw-card, .gw-disc.is-big, .gw-disc.is-small { animation: none; }
+  .gw-disc.is-small { transform: translate3d(calc((var(--i) - 1) * 38px), 0, 0) scale(0.85); }
+}
+@keyframes gw-breathe { 0%, 100% { opacity: 0.75; scale: 0.94 1; } 50% { opacity: 1; scale: 1.05 1; } }
+@keyframes gw-float { 0%, 100% { translate: 0 -4px; } 50% { translate: 0 5px; } }
+.cv-gateway .cv-gateway-role, .cv-gateway .cv-gateway-ask { text-shadow: 0 1px 14px rgba(3, 5, 12, 0.9), 0 0 2px rgba(3, 5, 12, 0.8); }
+@media (max-width: 640px) { .cv-gateway .gw-name { font-size: clamp(48px, 15vw, 72px); } }
